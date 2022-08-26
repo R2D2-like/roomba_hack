@@ -70,7 +70,7 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
- )
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##

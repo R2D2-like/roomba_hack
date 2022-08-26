@@ -1,1 +1,1 @@
-string[] detobject
+string[] strings

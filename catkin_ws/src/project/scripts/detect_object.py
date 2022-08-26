@@ -51,7 +51,7 @@ class DetectionDistance:
         self.cam_info = data3
 
     def process(self):
-        path = "~/tsuji/roomba_hack_groupc/roomba_hack/catkin_ws/src/three-dimensions_tutorial/yolov3/"
+        path = "/root/roomba_hack/catkin_ws/src/three-dimensions_tutorial/yolov3/"
 
         # load category
         with open(path+"data/coco.names") as f:
@@ -74,7 +74,8 @@ class DetectionDistance:
             # cv_array2 = self.bridge.imgmsg_to_cv2(tmp_depth, '32FC1')
             mask = np.zeros_like(tmp_depth)
             coordinate_list = []
-            calss_list = []
+            class_list = []
+            class_list_idx = []
 
             # plot bouding box
             for box in boxes:
@@ -87,7 +88,7 @@ class DetectionDistance:
                 coordinate_list.append([x1, y1, x2, y2])
 
                 class_list.append(category[cls_pred])
-                
+                class_list_idx.append(cls_pred)
 
                 tmp_image = cv2.rectangle(tmp_image, (x1, y1), (x2, y2), (0, 255, 0), 3)
                 tmp_image = cv2.putText(tmp_image, category[cls_pred], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
@@ -98,7 +99,11 @@ class DetectionDistance:
             if self.flag:
                 self.action_client.cancel_goal() 
                 set_object = rospy.ServiceProxy("select_object", Object_List)
+                print(class_list)
+                print(type(class_list))
+                #rospy.sleep(30)
                 res = set_object(class_list) #you can get one name of the target object 
+                #res = set_object(class_list_idx)
                 self.flag = False
                 target_coordinate_idx = class_list.index(res.tarobject)
                 target_object_name = res.tarobject
