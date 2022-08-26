@@ -10,15 +10,12 @@ import rospy
 from geometry_msgs.msg import PoseStamped
 import tf
 from geometry_msgs.msg import Quaternion
-from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 
-class ActionGoal:
+
+class TopicGoal:
     def __init__(self):
-        #self.ps_pub = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=1)
-        self.action_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-        self.action_client.wait_for_server()  # action serverの準備ができるまで待つ
-
-        #rospy.sleep(1.0)
+        self.ps_pub = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=1)
+        rospy.sleep(1.0)
  
     def set_goal(self, x, y, yaw):
         self.goal = PoseStamped() # goalのメッセージの定義
@@ -33,16 +30,11 @@ class ActionGoal:
         self.goal.pose.orientation = Quaternion(q[0], q[1], q[2], q[3])
         print(self.goal)
  
-    # def send_topic(self):
-    #     #self.ps_pub.publish(self.goal)
-    def send_action(self, duration=30.0):
-        self.action_client.send_goal(self.goal)  # ゴールを命令
-        result = self.action_client.wait_for_result(rospy.Duration(duration))
-        return result
+    def send_topic(self):
+        self.ps_pub.publish(self.goal)
 
 def Main():
-    rospy.init_node('target_goal', anonymous=True)
-
+    rospy.init_node('object_goal', anonymous=True)
     tfBuffer = tf2_ros.Buffer()
     listener = tf2_ros.TransformListener(tfBuffer)
     
@@ -66,11 +58,10 @@ def Main():
             t.transform.rotation.z,
             t.transform.rotation.w
         ))
-        ac = ActionGoal()
-        ac.set_goal(t.transform.translation.x-0.1, t.transform.translation.y-0.1, 0.0)
-        res = ac.send_action()
-        print(res)
-      
+        tg = TopicGoal()
+        tg.set_goal(t.transform.translation.x-0.1, t.transform.translation.y-0.1, 0.0)
+        tg.send_topic()
+
 
         rate.sleep()
 

@@ -8,3 +8,4 @@
     <remap from="image_rect" to="/depth_mask"/>
     <remap from="points" to="/camera/depth/points"/>
   </node>
+</launch>

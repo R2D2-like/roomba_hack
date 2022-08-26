@@ -23,7 +23,7 @@ from std_msgs.msg import String
 
 def select_object(req):
 
-    target = input("Which object do you choose amoung" + str(req.detobject) + "?:") # we need '' when we asked to write
+    target = input("Which object do you choose amoung" + str(req.detobject) + "?:") # we need not '' when we asked to write
     return Object_ListResponse(tarobject=target)
 
 if __name__ == "__main__":

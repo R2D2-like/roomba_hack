@@ -86,6 +86,7 @@ class DetectionDistance:
                 #print(mask)
 
                 coordinate_list.append([x1, y1, x2, y2])
+                print(coordinate_list)
 
                 class_list.append(category[cls_pred])
                 class_list_idx.append(cls_pred)
@@ -101,21 +102,28 @@ class DetectionDistance:
                 set_object = rospy.ServiceProxy("select_object", Object_List)
                 print(class_list)
                 print(type(class_list))
+                
                 #rospy.sleep(30)
-                res = set_object(class_list) #you can get one name of the target object 
+                roslist = StringArray()
+                roslist.strings = class_list
+
+                #or roslist = StringArray(strings = class_list)
+                
+                res = set_object(roslist) #you can get one name of the target object 
                 #res = set_object(class_list_idx)
                 self.flag = False
                 target_coordinate_idx = class_list.index(res.tarobject)
+                print(target_coordinate_idx)
                 target_object_name = res.tarobject
-                mask[coordinate_list[target_coordinate_idx][1], coordinate_list[target_coordinate_idx][3], coordinate_list[target_coordinate_idx][0], coordinate_list[target_coordinate_idx][2]] = 1
-                print(mask)
+                mask[coordinate_list[target_coordinate_idx][1]:coordinate_list[target_coordinate_idx][3], coordinate_list[target_coordinate_idx][0]:coordinate_list[target_coordinate_idx][2]] = 1
+                #print(mask)
                 mask_result = np.where(mask,tmp_depth,0)
                 mask_result = self.bridge.cv2_to_imgmsg(mask_result, "passthrough")
                 mask_result.header = tmp_caminfo.header
                 self.depth_mask_pub.publish(mask_result)
             elif target_object_name in class_list: 
                 target_coordinate_idx = class_list.index(target_object_name) 
-                mask[coordinate_list[target_coordinate_idx][1], coordinate_list[target_coordinate_idx][3], coordinate_list[target_coordinate_idx][0], coordinate_list[target_coordinate_idx][2]] = 1
+                mask[coordinate_list[target_coordinate_idx][1]:coordinate_list[target_coordinate_idx][3], coordinate_list[target_coordinate_idx][0]:coordinate_list[target_coordinate_idx][2]] = 1
                 print(mask)
                 mask_result = np.where(mask,tmp_depth,0)
                 mask_result = self.bridge.cv2_to_imgmsg(mask_result, "passthrough")
@@ -125,7 +133,7 @@ class DetectionDistance:
                 self.flag = True #when the roomba loses sight of the target
                 # rate = rospy.Rate(0.1)
                 # rate.sleep()
-                rospy.sleep(5.0)
+                #rospy.sleep(5.0)
 
             # publish image
 
