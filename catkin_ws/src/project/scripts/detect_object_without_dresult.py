@@ -16,6 +16,7 @@ from project.msg import StringArray
 from project.srv import Object_List
 import actionlib
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from std_msgs.msg import String
 
 class DetectionDistance:
     def __init__(self):
@@ -25,9 +26,10 @@ class DetectionDistance:
         self.action_client.wait_for_server()  # action serverの準備ができるまで待つ
 
         # Publisher
-        self.detection_result_pub = rospy.Publisher('/detection_result', Image, queue_size=10)
+        #self.detection_result_pub = rospy.Publisher('/detection_result', Image, queue_size=10)
         self.depth_mask_pub = rospy.Publisher('/depth_mask', Image, queue_size=10)
         self.cam_info_pub = rospy.Publisher('/camerainfo/depth_mask', CameraInfo, queue_size=10)
+        self.target_pub = rospy.Publisher('/target_name', String, queue_size=10)
 
 
         # Subscriber
@@ -40,6 +42,7 @@ class DetectionDistance:
         self.rgb_image, self.depth_image = None, None
         self.flag = True
         self.lost_counter = 0
+        self.object_list = ['sports ball', 'apple', 'bottle', 'baseball bat', 'person']
 
     def callback_rgbd(self, data1, data2, data3):
         cv_array = self.bridge.imgmsg_to_cv2(data1, 'bgr8')
@@ -96,10 +99,14 @@ class DetectionDistance:
                 tmp_image = cv2.putText(tmp_image, category[cls_pred], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
                 cx, cy = (x1+x2)//2, (y1+y2)//2
                 #print(category[cls_pred], self.depth_image[cy][cx]/1000, "m")
-            
+            # check = False
+            # for val in class_list:
+            #     if val in 
+
             #service
-            if len(class_list) >= 1:
+            if not set(class_list).isdisjoint(set(self.object_list)):
                 if self.flag:
+                    class_list = list(set(class_list) & set(self.object_list))
                     self.lost_counter = 0
                     self.action_client.cancel_all_goals() 
                     set_object = rospy.ServiceProxy("select_object", Object_List)
@@ -118,25 +125,40 @@ class DetectionDistance:
                     target_coordinate_idx = class_list.index(res.tarobject)
                     #print(target_coordinate_idx)
                     target_object_name = res.tarobject
-                    mask[coordinate_list[target_coordinate_idx][1]:coordinate_list[target_coordinate_idx][3], coordinate_list[target_coordinate_idx][0]:coordinate_list[target_coordinate_idx][2]] = 1
+                    Y1=coordinate_list[target_coordinate_idx][1]
+                    Y2=coordinate_list[target_coordinate_idx][3]
+                    X1=coordinate_list[target_coordinate_idx][0]
+                    X2=coordinate_list[target_coordinate_idx][2]
+
+                    mask[int(0.75*Y1+0.25*Y2):int(0.25*Y1+0.75*Y2),int(0.75*X1+0.25*X2):int(0.25*X1+0.75*X2)] = 1
                 #print(mask)
                     mask_result = np.where(mask,tmp_depth,0)
                     mask_result = self.bridge.cv2_to_imgmsg(mask_result, "passthrough")
                     mask_result.header = tmp_caminfo.header
                     self.depth_mask_pub.publish(mask_result)
+                    self.target_pub.publish(target_object_name)
+                    self.cam_info_pub.publish(tmp_caminfo)
                 elif target_object_name in class_list: 
                     self.lost_counter = 0
                     target_coordinate_idx = class_list.index(target_object_name) 
-                    mask[coordinate_list[target_coordinate_idx][1]:coordinate_list[target_coordinate_idx][3], coordinate_list[target_coordinate_idx][0]:coordinate_list[target_coordinate_idx][2]] = 1
+                    
+                    Y1=coordinate_list[target_coordinate_idx][1]
+                    Y2=coordinate_list[target_coordinate_idx][3]
+                    X1=coordinate_list[target_coordinate_idx][0]
+                    X2=coordinate_list[target_coordinate_idx][2]
+
+                    mask[int(0.75*Y1+0.25*Y2):int(0.25*Y1+0.75*Y2),int(0.75*X1+0.25*X2):int(0.25*X1+0.75*X2)] = 1
+                    #mask[coordinate_list[target_coordinate_idx][1]:coordinate_list[target_coordinate_idx][3], coordinate_list[target_coordinate_idx][0]:coordinate_list[target_coordinate_idx][2]] = 1
                     #print(mask)
                     mask_result = np.where(mask,tmp_depth,0)
                     mask_result = self.bridge.cv2_to_imgmsg(mask_result, "passthrough")
                     mask_result.header = tmp_caminfo.header
                     self.depth_mask_pub.publish(mask_result)
+                    self.cam_info_pub.publish(tmp_caminfo)
                 else:
                     if self.lost_counter < 16:
                         self.lost_counter += 1
-                        print("class_list has elements | counting lost_counter")
+                        print("class_list has elements | lost_counter is " + str(self.lost_counter))
                         pass
                     else:
                         #self.action_client.cancel_all_goals() 
@@ -164,9 +186,10 @@ class DetectionDistance:
             # mask_result = np.where(mask,tmp_depth,0)
             # mask_result = self.bridge.cv2_to_imgmsg(mask_result, "passthrough")
             # mask_result.header = tmp_caminfo.header
-            self.detection_result_pub.publish(detection_result)
+            #self.detection_result_pub.publish(detection_result)
             # self.depth_mask_pub.publish(mask_result)
-            self.cam_info_pub.publish(tmp_caminfo)
+            # self.cam_info_pub.publish(tmp_caminfo)
+            
 
 
 if __name__ == '__main__':

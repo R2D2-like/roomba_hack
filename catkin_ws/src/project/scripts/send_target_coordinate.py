@@ -20,18 +20,30 @@ class ActionGoal:
 
         #rospy.sleep(1.0)
  
-    def set_goal(self, x, y, yaw):
-        self.goal = PoseStamped() # goalのメッセージの定義
-        self.goal.header.stamp = rospy.Time.now() # 現在時刻
-        self.goal.header.frame_id = 'map' # マップ座標系でのゴールとして設定
+    # def set_goal(self, x, y, yaw):
+    #     self.goal = PoseStamped() # goalのメッセージの定義
+    #     self.goal.header.stamp = rospy.Time.now() # 現在時刻
+    #     self.goal.header.frame_id = 'map' # マップ座標系でのゴールとして設定
+    
 
+        # # ゴールの姿勢を指定
+        # self.goal.pose.position.x = x
+        # self.goal.pose.position.y = y
+        # print(x)
+        # q = tf.transformations.quaternion_from_euler(0.0, 0.0, yaw)  # 回転はquartanionで記述するので変換
+        # self.goal.pose.orientation = Quaternion(q[0], q[1], q[2], q[3])
+        # print(self.goal)
+
+    def set_goal(self, x, y, yaw):
+        self.goal = MoveBaseGoal()  # goalのメッセージの定義
+        self.goal.target_pose.header.frame_id = 'map'  # マップ座標系でのゴールとして設定
+        self.goal.target_pose.header.stamp = rospy.Time.now()  # 現在時刻
+        
         # ゴールの姿勢を指定
-        self.goal.pose.position.x = x
-        self.goal.pose.position.y = y
-        print(x)
+        self.goal.target_pose.pose.position.x = x
+        self.goal.target_pose.pose.position.y = y
         q = tf.transformations.quaternion_from_euler(0.0, 0.0, yaw)  # 回転はquartanionで記述するので変換
-        self.goal.pose.orientation = Quaternion(q[0], q[1], q[2], q[3])
-        print(self.goal)
+        self.goal.target_pose.pose.orientation = Quaternion(q[0], q[1], q[2], q[3])
  
     # def send_topic(self):
     #     #self.ps_pub.publish(self.goal)
@@ -67,7 +79,7 @@ def Main():
             t.transform.rotation.w
         ))
         ac = ActionGoal()
-        ac.set_goal(t.transform.translation.x-0.1, t.transform.translation.y-0.1, 0.0)
+        ac.set_goal(t.transform.translation.x-0.3, t.transform.translation.y-0.3, 0.0)
         res = ac.send_action()
         print(res)
       

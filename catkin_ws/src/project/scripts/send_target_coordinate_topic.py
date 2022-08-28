@@ -59,7 +59,7 @@ def Main():
             t.transform.rotation.w
         ))
         tg = TopicGoal()
-        tg.set_goal(t.transform.translation.x-0.1, t.transform.translation.y-0.1, 0.0)
+        tg.set_goal(t.transform.translation.x-0.3, t.transform.translation.y-0.3, 0.0)
         tg.send_topic()
 
 

@@ -29,6 +29,6 @@ class ActionGoal():
 
 if __name__ == '__main__':
     ag = ActionGoal()
-    ag.set_goal(1.0, 2.0, 0.0)
+    ag.set_goal(3.0, 1.0, 0.0)
     res = ag.send_action()
     print(res)
