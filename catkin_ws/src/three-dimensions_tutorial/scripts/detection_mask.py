@@ -3,6 +3,7 @@
 import rospy
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo
+from std_msgs.msg import String
 from cv_bridge import CvBridge
 from pytorchyolo import detect, models
 import matplotlib.pyplot as plt
@@ -21,6 +22,7 @@ class DetectionMask:
         self.camera_info_pub = rospy.Publisher('/masked_depth/camera_info', CameraInfo, queue_size=10)
 
         # Subscriber
+        self.target=rospy.Subscriber('/target_name',String,self.callback)
         rgb_sub = message_filters.Subscriber('/camera/color/image_raw', Image)
         depth_sub = message_filters.Subscriber('/camera/aligned_depth_to_color/image_raw', Image)
         cam_info = message_filters.Subscriber('/camera/color/camera_info', CameraInfo)
@@ -28,6 +30,10 @@ class DetectionMask:
 
         self.bridge = CvBridge()
         self.rgb_image, self.depth_image, self.camera_info = None, None, None
+        self.target=None
+
+    def callback(self,data):
+        self.target=data
 
     def callback_rgbd(self, data1, data2, data3):
         cv_array = self.bridge.imgmsg_to_cv2(data1, 'bgr8')
@@ -67,9 +73,12 @@ class DetectionMask:
             for box in boxes:
                 x1, y1, x2, y2 = map(int, box[:4])
                 cls_pred = int(box[5])
-                tmp_rgb_image = cv2.rectangle(tmp_rgb_image, (x1, y1), (x2, y2), (0, 255, 0), 3)
-                tmp_rgb_image = cv2.putText(tmp_rgb_image, category[cls_pred], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
-                depth_mask[y1:y2, x1:x2] = 1
+                if category[cls_pred]==self.target:
+                    continue
+                else:
+                    tmp_rgb_image = cv2.rectangle(tmp_rgb_image, (x1, y1), (x2, y2), (0, 255, 0), 3)
+                    tmp_rgb_image = cv2.putText(tmp_rgb_image, category[cls_pred], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+                    depth_mask[y1:y2, x1:x2] = 1
             
             tmp_rgb_image = cv2.cvtColor(tmp_rgb_image, cv2.COLOR_RGB2BGR)
             detection_result = self.bridge.cv2_to_imgmsg(tmp_rgb_image, "bgr8")
