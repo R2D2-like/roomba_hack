@@ -3,6 +3,7 @@
 import json
 import os
 
+import copy
 import time
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
@@ -97,22 +98,6 @@ class KeypointRCNN:
 
         return without_overlap_det_results
     
-    def draw_preds(self, img, dets, col=(0, 255, 0)):
-        for det in dets:
-            (x1, y1), (x2, y2) = det['box']
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            img = cv2.putText(img, det['label'], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1, col, 2)
-            # keypoints
-            kp_s = det['key_points']
-            for idx, k in enumerate(kp_s):
-                if k[2] == 0:
-                    continue
-                x, y = int(k[0]), int(k[1])
-                img = cv2.drawMarker(img, (x, y), (255, 0, 0), markerType=cv2.MARKER_CROSS, markerSize=25, thickness=1, line_type=cv2.LINE_8)
-                if KeypointRCNN.PART_STR[idx] in ["left_wrist", "right_wrist"]:
-                    img = cv2.putText(img, KeypointRCNN.PART_STR[idx], (x, y), cv2.FONT_HERSHEY_SIMPLEX, 1, col, 2)
-        return img
 
 
 class WavingDetector:
@@ -127,7 +112,7 @@ class WavingDetector:
         rgb_sub = rospy.Subscriber('/camera/color/image_raw', Image, self.rgb_callback)
 
         # publisher
-        self.debug_image_pub = rospy.Publisher('/wave_detection/debug_image', Image, queue_size=1)
+        self.detection_result_pub = rospy.Publisher('/kp_image', Image, queue_size=1)
 
         # service
         self.wave_detection_service = rospy.Service('/wave_detection', WavingLeftRight, self.wave_detection)
@@ -152,6 +137,7 @@ class WavingDetector:
             return
             
         rgb_img_copy= self.rgb_image.copy()
+        tmp_rgb_image = copy.copy(self.rgb_image)
 
         dets = self.wave_detector.predict(PIL.Image.fromarray(rgb_img_copy))
 
@@ -163,7 +149,8 @@ class WavingDetector:
             box_area= (det["box"][1][0]-det["box"][0][0])*(det["box"][1][1]-det["box"][0][1])
             det.update({"box_area":box_area})
 
-        dets = sorted(dets.items(),key=lambda det: det["box_area"], reverse=True)
+        #dets = sorted(dets.items(),key=lambda det: det["box_area"], reverse=True)
+        dets.sort(key=lambda det: det["box_area"], reverse=True)
         
         # examine the biggest BB is whether left or right person (step4)
 
@@ -184,23 +171,34 @@ class WavingDetector:
 
         for idx, k in enumerate(people['left_person']['key_points']):
             if KeypointRCNN.PART_STR[idx] in ['left_wrist', 'right_wrist', 'left_elbow', 'right_elbow']:
-                hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]] = k[1]  
+                hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]] = k[:2]  
 
         for idx, k in enumerate(people['right_person']['key_points']):
             if KeypointRCNN.PART_STR[idx] in ['left_wrist', 'right_wrist', 'left_elbow', 'right_elbow']:
-                hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[1]                                                                                                                                                                          
+                hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[:2]                                                                                                                                                                          
 
         elbow_wrist = {"left_person":None,'right_person':None }
-        elbow_wrist['left_person'] = max((hand_up_or_down['left_person']['left_elbow'] - hand_up_or_down['left_person']['left_wrist']), \
-            (hand_up_or_down['left_person']['right_elbow'] - hand_up_or_down['left_person']['right_wrist']))
-        elbow_wrist['right_person'] = max((hand_up_or_down['right_person']['left_elbow'] - hand_up_or_down['right_person']['left_wrist']), \
-            (hand_up_or_down['right_person']['right_elbow'] - hand_up_or_down['right_person']['right_wrist']))
+        elbow_wrist['left_person'] = max((hand_up_or_down['left_person']['left_elbow'][1] - hand_up_or_down['left_person']['left_wrist'][1]), \
+            (hand_up_or_down['left_person']['right_elbow'][1] - hand_up_or_down['left_person']['right_wrist'][1]))
+        elbow_wrist['right_person'] = max((hand_up_or_down['right_person']['left_elbow'][1] - hand_up_or_down['right_person']['left_wrist'][1]), \
+            (hand_up_or_down['right_person']['right_elbow'][1] - hand_up_or_down['right_person']['right_wrist'][1]))
                                   
         if elbow_wrist['left_person']>elbow_wrist['right_person']:
             self.left_cnt += 1
         else:
             self.right_cnt += 1
     
+        tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['left_person']['left_elbow'][0]), int(hand_up_or_down['left_person']['left_elbow'][1])), 15, (0, 255, 0), thickness=-1)
+        tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['left_person']['left_wrist'][0]), int(hand_up_or_down['left_person']['left_wrist'][1])), 15, (255, 0, 0), thickness=-1)
+        tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['left_person']['right_elbow'][0]), int(hand_up_or_down['left_person']['right_elbow'][1])), 15, (100, 100, 0), thickness=-1)
+        tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['left_person']['right_wrist'][0]), int(hand_up_or_down['left_person']['right_wrist'][1])), 15, (0, 100, 100), thickness=-1)
+        tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['right_person']['left_elbow'][0]), int(hand_up_or_down['right_person']['left_elbow'][1])), 15, (0, 0, 255), thickness=-1)
+        tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['right_person']['left_wrist'][0]), int(hand_up_or_down['right_person']['left_wrist'][1])), 15, (255, 255, 255), thickness=-1)
+        tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['right_person']['right_elbow'][0]), int(hand_up_or_down['right_person']['right_elbow'][1])), 15, (100, 0, 100), thickness=-1)
+        tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['right_person']['right_wrist'][0]), int(hand_up_or_down['right_person']['right_wrist'][1])), 15, (0, 0, 0), thickness=-1)
+        tmp_rgb_image = cv2.cvtColor(tmp_rgb_image, cv2.COLOR_RGB2BGR)
+        detection_result = self.bridge.cv2_to_imgmsg(tmp_rgb_image, "bgr8")
+        self.detection_result_pub.publish(detection_result)
 
 
 
@@ -213,17 +211,23 @@ class WavingDetector:
 
         t = rospy.Time.now()
 
-        while rospy.Time.now().secs - t.secs < 10.0:
+        while rospy.Time.now().secs - t.secs < 20.0:
             rospy.sleep(0.05)
             self.left_or_right_detection()
 
 
         if self.left_cnt > self.right_cnt:
-            res.left_or_right = 'left'
-            rospy.loginfo("left person is waving a hand")
-        else:
             res.left_or_right = 'right'
+            l = self.left_cnt
+            r = self.right_cnt
+            rospy.loginfo("left" + str(l) + "right" + str(r))
             rospy.loginfo("right person is waving a hand")
+        else:
+            res.left_or_right = 'left'
+            l = self.left_cnt
+            r = self.right_cnt
+            rospy.loginfo("left" + str(l) + "right" + str(r))
+            rospy.loginfo("left person is waving a hand")
         return res
 
 

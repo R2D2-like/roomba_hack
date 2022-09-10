@@ -80,6 +80,12 @@ RUN pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1
 # install YOLOv3
 RUN pip install pytorchyolo
 
+RUN pip3 install ftfy regex tqdm
+RUN pip3 install --no-dependencies git+https://github.com/openai/CLIP.git
+RUN pip3 install Pillow
+RUN pip3 install albumentations
+#RUN pip3 install clip-ods
+
 WORKDIR /root/
 
 COPY ./docker/scripts/. /root/scripts/
