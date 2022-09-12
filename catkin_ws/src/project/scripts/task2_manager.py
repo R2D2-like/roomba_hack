@@ -7,7 +7,7 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from std_msgs.msg import String
 from project.srv import WavingLeftRight
-from project.srv import GetCoordinate
+from project.srv import GetGoalPoint#GetCoordinate
 
 import tf2_ros
 import actionlib
@@ -19,7 +19,7 @@ from geometry_msgs.msg import Quaternion
 
 class SimpleController:
     def __init__(self):
-        rospy.init_node('simple_controller', anonymous=True)
+        #rospy.init_node('simple_controller', anonymous=True)
         
         # Publisher
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -108,29 +108,34 @@ class ActionGoal:
 
 
 if __name__=='__main__':
+    rospy.init_node('task2_manager', anonymous=True)
+    mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
+    rospy.sleep(5)
 
     #go to wave detection point (step1)
-    simple_controller = SimpleController()
-    try:
-        simple_controller.go_straight(1.0)
-        simple_controller.turn_left(90)
-    except rospy.ROSInitException:
-        pass
+    # simple_controller = SimpleController()
+    # try:
+    #     simple_controller.go_straight(1.0)
+    #     simple_controller.turn_left(90)
+    # except rospy.ROSInitException:
+    #     pass
 
     #reqest waving person result(step2)
-    waving_person = rospy.ServiceProxy('/wave_detection', WavingLeftRight)
-    res  = waving_person()
+    # waving_person = rospy.ServiceProxy('/wave_detection', WavingLeftRight)
+    # res  = waving_person()
 
     #induce masking ankle(step3)
-    mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String)
+    mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
+    #while not rospy.is_shutdown():
+        
     waving_person_str = String()
-    waving_person_str.data = res.left_or_right
+    waving_person_str.data = 'left'#res.left_or_right
     mask_ankle_trigger_pub.publish(waving_person_str)
     rospy.sleep(0.05)
 
 
     #reqest goal coordinate(step4)
-    get_coordinate = rospy.ServiceProxy('/get_coordinate', GetCoordinate)
+    get_coordinate = rospy.ServiceProxy('/get_coordinate', GetGoalPoint)
     res = get_coordinate()
     x = res.x
     y = res.y
@@ -138,7 +143,8 @@ if __name__=='__main__':
     #send goal (step5)
     rate = rospy.Rate(10)
     ac = ActionGoal()
-    ac.set_goal(x, y, 0.0)
+    print("goal(" + str(x+0.3) + "," + str(y) + ")")
+    ac.set_goal(x-0.3, y, 0.0)
     res = ac.send_action()
     print(res)
     rate.sleep()

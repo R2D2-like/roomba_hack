@@ -123,7 +123,7 @@ class DetectWavingPersonAnkle:
         self.cam_info_pub = rospy.Publisher('/camerainfo/depth_mask', CameraInfo, queue_size=10)
 
         
-        self.detection_result_pub = rospy.Publisher('/kp_image/ankle', Image, queue_size=1)
+        self.ankle_mask_result_pub = rospy.Publisher('/kp_image/ankle', Image, queue_size=10)
 
         # Subscriber
         rgb_sub = message_filters.Subscriber('/camera/color/image_raw', Image)
@@ -140,6 +140,7 @@ class DetectWavingPersonAnkle:
 
 
     def callback_rgbd(self, data1, data2, data3):
+        print("called@callback_rgbd")
         cv_array = self.bridge.imgmsg_to_cv2(data1, 'bgr8')
         cv_array = cv2.cvtColor(cv_array, cv2.COLOR_BGR2RGB)
         self.rgb_image = cv_array
@@ -151,11 +152,13 @@ class DetectWavingPersonAnkle:
 
 
     def extract_ancle_point(self, LorR):
-            
+        
         rgb_img_copy= self.rgb_image.copy()
         tmp_rgb_image = copy.copy(self.rgb_image)
+        
 
         dets = self.wave_detector.predict(PIL.Image.fromarray(rgb_img_copy))
+        print('@extract_ancle_point')
 
         if len(dets) != 2:
             return
@@ -180,20 +183,20 @@ class DetectWavingPersonAnkle:
             people["left_person"] = dets[1]
             people["right_person"] = dets[0]
 
-        #examine whitch person is waving (step5)
+    
 
         hand_up_or_down = {"left_person":{"left_ankle":None}, "right_person":{"right_ankle":None}}
 
         if LorR == "left":
             for idx, k in enumerate(people['left_person']['key_points']):
-                if KeypointRCNN.PART_STR[idx] in ["left_ankle"]:
+                if KeypointRCNN.PART_STR[idx] in ["right_ankle"]:
                     hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]] = k[:2]
                     x=int(hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]][0])
                     y=int(hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]][1])
                     tmp_rgb_image = cv2.circle(tmp_rgb_image, (x, y), 15, (0, 255, 0), thickness=-1)
         else:
             for idx, k in enumerate(people['right_person']['key_points']):
-                if KeypointRCNN.PART_STR[idx] in ["right_ankle"]:
+                if KeypointRCNN.PART_STR[idx] in ["left_ankle"]:
                     hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[:2]       
                     x=int(hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]][0])
                     y=int(hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]][1])
@@ -209,32 +212,41 @@ class DetectWavingPersonAnkle:
         # tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['right_person']['right_wrist'][0]), int(hand_up_or_down['right_person']['right_wrist'][1])), 15, (0, 0, 0), thickness=-1)
 
         tmp_rgb_image = cv2.cvtColor(tmp_rgb_image, cv2.COLOR_RGB2BGR)
-        detection_result = self.bridge.cv2_to_imgmsg(tmp_rgb_image, "bgr8")
-        self.detection_result_pub.publish(detection_result)
+        detection_result_mask = self.bridge.cv2_to_imgmsg(tmp_rgb_image, "bgr8")
+        self.ankle_mask_result_pub.publish(detection_result_mask)
 
-        return x,y
+        x_y_list = [x,y]
+        print(x_y_list)
+
+        return x_y_list
 
 
 
-    def process(self,LorR):
+    def process(self,msg):
+        print("called@process")
         while not rospy.is_shutdown():
             if self.rgb_image is None:
                 continue
-  
-
+            
+            LorR = msg.data
+            print(msg)
             tmp_depth = copy.copy(self.depth_image)
             tmp_caminfo = copy.copy(self.cam_info)
-            x, y = self.extract_ancle_point(LorR.data)
+            xy = self.extract_ancle_point(LorR)
+            x = xy[0]
+            y = xy[1]
+            print("x : " + str(x) + ", y : " + str(y))
 
             mask = np.zeros_like(tmp_depth)
-            mask[y][x] = 1
+            print(mask.shape)
+            mask[y-50:y+50,x-50:x+50] = 1
             
             # publish image
             mask_result = np.where(mask,tmp_depth,0)
             mask_result = self.bridge.cv2_to_imgmsg(mask_result, "passthrough")
             mask_result.header = tmp_caminfo.header
             self.depth_mask_pub.publish(mask_result)
-#             self.cam_info_pub.publish(tmp_caminfo)
+            self.cam_info_pub.publish(tmp_caminfo)
 
 # def main_action(trigger):
 #     if trigger:

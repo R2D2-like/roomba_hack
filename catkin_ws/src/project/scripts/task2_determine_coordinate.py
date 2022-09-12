@@ -4,7 +4,6 @@ import rospy
 import tf2_ros
 import actionlib
 import tf
-from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import Quaternion
 import rospy
 from geometry_msgs.msg import PoseStamped
@@ -29,35 +28,35 @@ import torchvision.transforms
 
 
 from sensor_msgs.msg import Image
-from project.srv import GetCoordinate
-from project.srv import GetCoordinateResponse
+from project.srv import GetGoalPoint
+from project.srv import GetGoalPointResponse
 
 class DetermineGoal:
     def __init__(self):
         rospy.init_node('determine_target_goal', anonymous=True)
 
         # service
-        self.wave_detection_service = rospy.Service('/get_coordinate', GetCoordinate, self.determine_goal)
+        self.wave_detection_service = rospy.Service('/get_coordinate', GetGoalPoint, self.determine_goal)
 
     def determine_goal(self, req):
 
-        estimete_x_min = **
-        estimete_x_max = **
-        estimete_x = **
+        estimete_x_min = 1.3
+        estimete_x_max = 1.7
+        estimete_x = 1.5
 
-        res = GetCoordinateResponse()
+        res = GetGoalPointResponse()
         rate = rospy.Rate(10)
 
         tfBuffer = tf2_ros.Buffer()
         listener = tf2_ros.TransformListener(tfBuffer)
 
-        t = rospy.Time.now()
+        #t = rospy.Time.now()
 
         x = 0
         y = 0
         cnt = 0
 
-        while rospy.Time.now().secs - t.secs < 5.0:
+        while cnt < 10:
             try:
                 t = tfBuffer.lookup_transform('map','object_frame',rospy.Time())
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
@@ -85,9 +84,9 @@ class DetermineGoal:
         if (x/cnt<estimete_x_min) or (estimete_x_max<x/cnt):
             res.x = estimete_x
         else:
-            res.x = int(x/cnt)
+            res.x = x/cnt
 
-        res.y = int(y/cnt)
+        res.y = y/cnt
 
         return res
 
