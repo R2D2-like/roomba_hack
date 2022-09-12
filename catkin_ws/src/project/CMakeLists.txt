@@ -58,6 +58,7 @@ add_service_files(
   FILES
   Object_List.srv
   WavingLeftRight.srv
+  GetCoordinate.srv
 )
 
 ## Generate actions in the 'action' folder
