@@ -177,8 +177,8 @@ class DetectWavingPersonAnkle:
             people["left_person"] = dets[0]
             people["right_person"] = dets[1]
         else:
-            people["left_person"] = dets[0]
-            people["right_person"] = dets[1]
+            people["left_person"] = dets[1]
+            people["right_person"] = dets[0]
 
         #examine whitch person is waving (step5)
 
