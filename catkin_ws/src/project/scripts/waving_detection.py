@@ -161,8 +161,8 @@ class WavingDetector:
             people["left_person"] = dets[0]
             people["right_person"] = dets[1]
         else:
-            people["left_person"] = dets[0]
-            people["right_person"] = dets[1]
+            people["left_person"] = dets[1]
+            people["right_person"] = dets[0]
 
         #examine whitch person is waving (step5)
 
@@ -217,17 +217,17 @@ class WavingDetector:
 
 
         if self.left_cnt > self.right_cnt:
-            res.left_or_right = 'right'
-            l = self.left_cnt
-            r = self.right_cnt
-            rospy.loginfo("left" + str(l) + "right" + str(r))
-            rospy.loginfo("right person is waving a hand")
-        else:
             res.left_or_right = 'left'
             l = self.left_cnt
             r = self.right_cnt
             rospy.loginfo("left" + str(l) + "right" + str(r))
             rospy.loginfo("left person is waving a hand")
+        else:
+            res.left_or_right = 'right'
+            l = self.left_cnt
+            r = self.right_cnt
+            rospy.loginfo("left" + str(l) + "right" + str(r))
+            rospy.loginfo("right person is waving a hand")
         return res
 
 
