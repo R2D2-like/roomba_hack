@@ -78,16 +78,17 @@ class DetectionDistance:
                 continue
 
             # inference
+            tmp_hsv_image = copy.copy(self.hsv_image)
             tmp_image = copy.copy(self.rgb_image)
             tmp_depth = copy.copy(self.depth_image)
             tmp_caminfo = copy.copy(self.cam_info)
             print(tmp_caminfo.header)
 
-            maskY = cv2.inRange(self.hsv_image, self.hsv_min_Y, self.hsv_max_Y)
-            maskR1 = cv2.inRange(self.hsv_image, self.hsv_min_R1, self.hsv_max_R1)
-            maskR2 = cv2.inRange(self.hsv_image, self.hsv_min_R2, self.hsv_max_R2)
-            maskB = cv2.inRange(self.hsv_image, self.hsv_min_B, self.hsv_max_B)
-            maskG = cv2.inRange(self.hsv_image, self.hsv_min_G, self.hsv_max_G)
+            maskY = cv2.inRange(tmp_hsv_image, self.hsv_min_Y, self.hsv_max_Y)
+            maskR1 = cv2.inRange(tmp_hsv_image, self.hsv_min_R1, self.hsv_max_R1)
+            maskR2 = cv2.inRange(tmp_hsv_image, self.hsv_min_R2, self.hsv_max_R2)
+            maskB = cv2.inRange(tmp_hsv_image, self.hsv_min_B, self.hsv_max_B)
+            maskG = cv2.inRange(tmp_hsv_image, self.hsv_min_G, self.hsv_max_G)
 
             maskRGBY = maskY + maskR1 + maskR2 + maskB + maskG
 
