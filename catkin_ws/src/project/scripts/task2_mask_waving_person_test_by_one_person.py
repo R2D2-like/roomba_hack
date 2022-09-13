@@ -160,34 +160,37 @@ class DetectWavingPersonAnkle:
         dets = self.wave_detector.predict(PIL.Image.fromarray(rgb_img_copy))
         print('@extract_ancle_point')
 
-        if len(dets) != 2:
+        if len(dets) == 0:
             return
 
         #sort biggest->smallset (step3)
-        for det in dets:
-            box_area= (det["box"][1][0]-det["box"][0][0])*(det["box"][1][1]-det["box"][0][1])
-            det.update({"box_area":box_area})
+        if len(dets) >= 2:
+            for det in dets:
+                box_area= (det["box"][1][0]-det["box"][0][0])*(det["box"][1][1]-det["box"][0][1])
+                det.update({"box_area":box_area})
+            dets.sort(key=lambda det: det["box_area"], reverse=True)
 
         #dets = sorted(dets.items(),key=lambda det: det["box_area"], reverse=True)
-        dets.sort(key=lambda det: det["box_area"], reverse=True)
+        # dets.sort(key=lambda det: det["box_area"], reverse=True)
         
         # examine the biggest BB is whether left or right person (step4)
 
         people = {}
    
 
-        if (dets[0]["box"][0][0]+dets[0]["box"][1][0])/2 < (dets[1]["box"][0][0]+dets[1]["box"][1][0])/2:
-            people["left_person"] = dets[0]
-            people["right_person"] = dets[1]
-        else:
-            people["left_person"] = dets[1]
-            people["right_person"] = dets[0]
+        # if (dets[0]["box"][0][0]+dets[0]["box"][1][0])/2 < (dets[1]["box"][0][0]+dets[1]["box"][1][0])/2:
+        #     people["left_person"] = dets[0]
+        #     people["right_person"] = dets[1]
+        # else:
+        #     people["left_person"] = dets[1]
+        #     people["right_person"] = dets[0]
 
     
 
         hand_up_or_down = {"left_person":{"left_ankle":None}, "right_person":{"right_ankle":None}}
 
         if LorR == "left":
+            people["left_person"] = dets[0]
             for idx, k in enumerate(people['left_person']['key_points']):
                 if KeypointRCNN.PART_STR[idx] in ["right_ankle"]:
                     hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]] = k[:2]
@@ -195,6 +198,7 @@ class DetectWavingPersonAnkle:
                     y=int(hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]][1])
                     tmp_rgb_image = cv2.circle(tmp_rgb_image, (x, y), 15, (0, 255, 0), thickness=-1)
         else:
+            people["right_person"] = dets[0]
             for idx, k in enumerate(people['right_person']['key_points']):
                 if KeypointRCNN.PART_STR[idx] in ["left_ankle"]:
                     hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[:2]       
