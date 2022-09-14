@@ -1,4 +1,4 @@
-robot_radius: 0.10
+robot_radius: 0.05
 inflation_radius: 0
  
 observation_sources: laser_scan_sensor
