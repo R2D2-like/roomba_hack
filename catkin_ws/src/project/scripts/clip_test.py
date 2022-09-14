@@ -29,8 +29,8 @@ class Detection_neo:
 
 
     def callback(self,data1):
-        for i in len(data1):
-            cv_array=self.bridge.imgmsg_to_cv2(data1[i],'bgr8')
+        for i in range(len(data1.image_array)):
+            cv_array=self.bridge.imgmsg_to_cv2(data1.image_array[i],'bgr8')
             cv_array=cv2.cvtColor(cv_array,cv2.COLOR_BGR2RGB)
             self.rgb_image=PIL.Image.fromarray(np.array(cv_array))
             print(type(self.rgb_image))
