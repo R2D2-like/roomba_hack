@@ -40,9 +40,9 @@ class DetermineGoal:
 
     def determine_goal(self, req):
 
-        estimete_x_min = 1.3
-        estimete_x_max = 1.7
-        estimete_x = 1.5
+        # estimete_x_min = 1.3
+        # estimete_x_max = 1.7
+        # estimete_x = 1.5
 
         res = GetGoalPointResponse()
         rate = rospy.Rate(10)
@@ -81,11 +81,11 @@ class DetermineGoal:
 
             rate.sleep()
       
-        if (x/cnt<estimete_x_min) or (estimete_x_max<x/cnt):
-            res.x = estimete_x
-        else:
-            res.x = x/cnt
-
+        # if (x/cnt<estimete_x_min) or (estimete_x_max<x/cnt):
+        #     res.x = estimete_x
+        # else:
+        #     res.x = x/cnt
+        res.x = x/cnt
         res.y = y/cnt
 
         return res

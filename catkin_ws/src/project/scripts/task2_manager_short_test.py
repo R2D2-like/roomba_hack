@@ -113,23 +113,23 @@ if __name__=='__main__':
     rospy.sleep(5)
 
     #go to wave detection point (step1)
-    simple_controller = SimpleController()
-    try:
-         simple_controller.go_straight(1.0)
-         simple_controller.turn_left(90)
-    except rospy.ROSInitException:
-         pass
+    # simple_controller = SimpleController()
+    # try:
+    #     simple_controller.go_straight(1.0)
+    #     simple_controller.turn_left(90)
+    # except rospy.ROSInitException:
+    #     pass
 
     #reqest waving person result(step2)
-    waving_person = rospy.ServiceProxy('/wave_detection', WavingLeftRight)
-    res  = waving_person()
+    # waving_person = rospy.ServiceProxy('/wave_detection', WavingLeftRight)
+    # res  = waving_person()
 
     #induce masking ankle(step3)
     mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
     #while not rospy.is_shutdown():
         
     waving_person_str = String()
-    waving_person_str.data = res.left_or_right
+    waving_person_str.data = 'left'#res.left_or_right
     mask_ankle_trigger_pub.publish(waving_person_str)
     rospy.sleep(0.05)
 
