@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 from os import TMP_MAX
@@ -14,6 +13,8 @@ import cv2
 import copy
 import numpy as np
 
+from project.msg import ImageArray
+
 class DetectionDistance:
     def __init__(self):
         rospy.init_node('task1_extract_object', anonymous=True)
@@ -22,7 +23,7 @@ class DetectionDistance:
         #self.detection_result_pub = rospy.Publisher('/detection_result', Image, queue_size=10)
         #self.depth_mask_pub = rospy.Publisher('/task1/masked_depth/image', Image, queue_size=10)
         #self.cam_info_pub = rospy.Publisher('/task1/masked_depth/camera_info', CameraInfo, queue_size=10)
-        self.mask_result_pub = rospy.Publisher('/task1/mask_result_for_clip', Image, queue_size=10)
+        self.mask_result_pub = rospy.Publisher('/task1/mask_result_for_clip', ImageArray, queue_size=10)
 
         # Subscriber
         rgb_sub = message_filters.Subscriber('/camera/color/image_raw', Image)
@@ -60,8 +61,8 @@ class DetectionDistance:
         cv_array = cv2.cvtColor(cv_array, cv2.COLOR_BGR2RGB)
         self.rgb_image = cv_array
 
-        # cv_array = self.bridge.imgmsg_to_cv2(data2, 'passthrough')
-        # self.depth_image = cv_array
+        cv_array = self.bridge.imgmsg_to_cv2(data2, 'passthrough')
+        self.depth_image = cv_array
 
         # self.cam_info = data3
 
@@ -84,7 +85,7 @@ class DetectionDistance:
             tmp_bgr_image = copy.copy(self.bgr_image)
             tmp_hsv_image = copy.copy(self.hsv_image)
             tmp_rgb_image = copy.copy(self.rgb_image)
-            # tmp_depth = copy.copy(self.depth_image)
+            #tmp_depth = copy.copy(self.depth_image)
             # tmp_caminfo = copy.copy(self.cam_info)
             # print(tmp_caminfo.header)
 
@@ -104,16 +105,22 @@ class DetectionDistance:
             contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             contours2 = list(filter(lambda x: cv2.contourArea(x) >= 15000, contours))
 
-
+            crop_image_list = []
+            roslist = ImageArray()
             for i, cnt in enumerate(contours2):
             # 輪郭に外接する長方形を取得する。
                 x, y, width, height = cv2.boundingRect(cnt)
-                mask = np.zeros_like(tmp_depth)
+                mask = np.zeros_like(maskRGBY)
                 mask[y:y+height,x:x+width] = 1
                 result = cv2.bitwise_and(tmp_rgb_image, tmp_rgb_image, mask=mask) #RGB
                 result = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
                 result = self.bridge.cv2_to_imgmsg(result, "bgr8")
-                self.mask_result_pub.publish(result)
+                crop_image_list.append(result)
+                #self.mask_result_pub.publish(result)
+                #rospy.sleep(0.1)
+
+            roslist.image_array = crop_image_list
+            self.mask_result_pub.publish(roslist)
 
             # boxes = detect.detect_image(model, tmp_rgb_image)
             # # [[x1, y1, x2, y2, confidence, class]]
@@ -132,7 +139,7 @@ class DetectionDistance:
             #     tmp_rgb_image = cv2.putText(tmp_rgb_image, category[cls_pred], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
             #     cx, cy = (x1+x2)//2, (y1+y2)//2
             #     print(category[cls_pred], self.depth_image[cy][cx]/1000, "m")
-            
+
             # # publish image
 
             # tmp_image = cv2.cvtColor(tmp_rgb_image, cv2.COLOR_RGB2BGR)
@@ -151,3 +158,4 @@ if __name__ == '__main__':
         dd.process()
     except rospy.ROSInitException:
         pass
+
