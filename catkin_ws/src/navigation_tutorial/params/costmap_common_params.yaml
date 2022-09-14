@@ -1,5 +1,5 @@
-robot_radius: 0.20
-inflation_radius: 0.25
+robot_radius: 0.10
+inflation_radius: 0
  
 observation_sources: laser_scan_sensor
 observation_sources: detection_cloud
