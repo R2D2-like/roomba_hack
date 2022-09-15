@@ -27,6 +27,8 @@ class Detection_neo:
         self.bridge=CvBridge()
         self.rgb_image,self.depth_image,self.camera_info=None,None,None
 
+        self.threshold={"a strawberry":0.2,"a sports ball":0.2,"an apple":0.2,"a banana":0.2,"a toy plane":0.2,"a chips can":0.2,"a rubiks cube":0.2,"a yellow wood block":0.2}
+
 
     def callback(self,data1):
         for i in range(len(data1.image_array)):
@@ -48,12 +50,24 @@ class Detection_neo:
             text_features=self.model.encode_text(text)
 
             logits_per_image,logits_per_text=self.model(self.image, text)
+
+        '''
             probs=logits_per_image.softmax(dim=-1).cpu().numpy()
         idx=np.argmax(probs)
         if texts[idx] in self.detect_result:
             pass
         else:
             self.detect_result.append(texts[idx])
+        '''
+
+        probs=list(logits_per_image.softmax(dim=-1).cpu().numpy())
+        for idx in range(len(probs)):
+            if texts[idx] in self.detect_result:
+                continue
+            elif probs[idx] >= self.thself.threshold[texts[idx]]:
+                self.detect_result.append(texts[idx])
+
+
 
 
         print("Label probs",probs)
