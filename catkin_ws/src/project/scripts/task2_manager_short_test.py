@@ -20,7 +20,7 @@ from geometry_msgs.msg import Quaternion
 class SimpleController:
     def __init__(self):
         #rospy.init_node('simple_controller', anonymous=True)
-        
+
         # Publisher
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
@@ -92,16 +92,16 @@ class ActionGoal:
         self.goal = MoveBaseGoal()  # goalのメッセージの定義
         self.goal.target_pose.header.frame_id = 'map'  # マップ座標系でのゴールとして設定
         self.goal.target_pose.header.stamp = rospy.Time.now()  # 現在時刻
-        
+
         # ゴールの姿勢を指定
         self.goal.target_pose.pose.position.x = x
         self.goal.target_pose.pose.position.y = y
         q = tf.transformations.quaternion_from_euler(0.0, 0.0, yaw)  # 回転はquartanionで記述するので変換
         self.goal.target_pose.pose.orientation = Quaternion(q[0], q[1], q[2], q[3])
- 
+
     # def send_topic(self):
     #     #self.ps_pub.publish(self.goal)
-    def send_action(self, duration=30.0):
+    def send_action(self, duration=60.0):
         self.action_client.send_goal(self.goal)  # ゴールを命令
         result = self.action_client.wait_for_result(rospy.Duration(duration))
         return result
@@ -110,7 +110,7 @@ class ActionGoal:
 if __name__=='__main__':
     rospy.init_node('task2_manager', anonymous=True)
     mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
-    rospy.sleep(5)
+    rospy.sleep(7)
 
     #go to wave detection point (step1)
     simple_controller = SimpleController()
@@ -127,7 +127,7 @@ if __name__=='__main__':
     #induce masking ankle(step3)
     mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
     #while not rospy.is_shutdown():
-        
+
     waving_person_str = String()
     waving_person_str.data = 'left'#res.left_or_right
     mask_ankle_trigger_pub.publish(waving_person_str)
@@ -141,26 +141,27 @@ if __name__=='__main__':
     #send goal (step5)
     rate = rospy.Rate(10)
     ac = ActionGoal()
-    estimete_x_min = 0.8
-    estimete_x_max = 1.7
-    estimete_x = 1.5
+    estimete_x_min = 0.3
+    estimete_x_max = 1.0
+    estimete_x = 1.0
+    print(res.x)
 
     if (res.x<estimete_x_min) or (estimete_x_max<res.x):
             x = estimete_x
             y = res.y
-            print("goal(" + str(x) + "," + str(y) + ")")
-            ac.set_goal(x, y, 0.0)
+            print("goal(" + str(x) + "," + str(y-0.5) + ")")
+            ac.set_goal(x, y-0.3, 0.0)#if left y-0.2, if right y+0.5
             res = ac.send_action()
             simple_controller.stop()
     else:
             x = res.x
             y = res.y
-            print("goal(" + str(x+0.5) + "," + str(y) + ")")
-            ac.set_goal(x+0.5, y, 0.0)
+            print("goal(" + str(x+0.4) + "," + str(y) + ")")
+            ac.set_goal(x+0.35, y-0.2, 0.0)
             res = ac.send_action()
             simple_controller.stop()
 
-    
+
     # print("goal(" + str(x+0.3) + "," + str(y) + ")")
     # ac.set_goal(x-0.3, y, 0.0)
     # res = ac.send_action()
@@ -169,8 +170,8 @@ if __name__=='__main__':
 
 
 
-    
 
-     
+
+
 
 

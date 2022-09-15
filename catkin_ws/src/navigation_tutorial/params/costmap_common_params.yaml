@@ -1,13 +1,13 @@
-obstacle_range: 1.0
-raytrace_range: 1.5
+#obstacle_range: 1.0
+#raytrace_range: 1.5
 
-robot_radius: 0.05
-inflation_radius: 0
- 
+robot_radius: 0.1
+inflation_radius: 0.15
+
 observation_sources: laser_scan_sensor
 observation_sources: detection_cloud
 
- 
+
 laser_scan_sensor:
   sensor_frame: laser
   data_type: LaserScan

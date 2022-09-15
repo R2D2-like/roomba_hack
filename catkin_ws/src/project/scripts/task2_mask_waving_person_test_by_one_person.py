@@ -25,7 +25,7 @@ import numpy as np
 import rospy
 import torch
 import torchvision
-import torchvision.transforms 
+import torchvision.transforms
 
 
 from sensor_msgs.msg import Image
@@ -52,7 +52,7 @@ class KeypointRCNN:
     PART_STR = ["nose","left_eye","right_eye","left_ear","right_ear","left_shoulder",
                 "right_shoulder","left_elbow","right_elbow","left_wrist","right_wrist",
                 "left_hip","right_hip","left_knee","right_knee","left_ankle","right_ankle"]
-    
+
     def __init__(self):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -65,9 +65,9 @@ class KeypointRCNN:
         img = transform(rgb_img).to(self.device)
         with torch.no_grad():
             pred = self.model([img])[0]
-       
-        #tensor2np.array2list       
-        pred_class = [KeypointRCNN.COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred['labels'].detach().cpu().numpy())] 
+
+        #tensor2np.array2list
+        pred_class = [KeypointRCNN.COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred['labels'].detach().cpu().numpy())]
         pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred['boxes'].detach().cpu().numpy())]
         pred_score = list(pred['scores'].detach().cpu().numpy())
         pred_keypoints = list(pred['keypoints'].cpu().detach().numpy())
@@ -105,13 +105,13 @@ class KeypointRCNN:
                 if (x0 < X0) and (X0 < x1):#X0 is within the area of  the det_result's bounding boxs, so we should not include det_result
                     flag = True
                     break
-            
+
             without_overlap_det_results.append(det_result)
 
         return without_overlap_det_results
 
 
-    
+
 
 class DetectWavingPersonAnkle:
     def __init__(self):
@@ -122,7 +122,7 @@ class DetectWavingPersonAnkle:
         self.depth_mask_pub = rospy.Publisher('/depth_mask', Image, queue_size=10)
         self.cam_info_pub = rospy.Publisher('/camerainfo/depth_mask', CameraInfo, queue_size=10)
 
-        
+
         self.ankle_mask_result_pub = rospy.Publisher('/kp_image/ankle', Image, queue_size=10)
 
         # Subscriber
@@ -152,13 +152,13 @@ class DetectWavingPersonAnkle:
 
 
     def extract_ancle_point(self, LorR):
-        
+
         rgb_img_copy= self.rgb_image.copy()
         tmp_rgb_image = copy.copy(self.rgb_image)
-        
+
 
         dets = self.wave_detector.predict(PIL.Image.fromarray(rgb_img_copy))
-        print('@extract_ancle_point')
+
 
         if len(dets) == 0:
             return
@@ -172,11 +172,11 @@ class DetectWavingPersonAnkle:
 
         #dets = sorted(dets.items(),key=lambda det: det["box_area"], reverse=True)
         # dets.sort(key=lambda det: det["box_area"], reverse=True)
-        
+
         # examine the biggest BB is whether left or right person (step4)
 
         people = {}
-   
+
 
         # if (dets[0]["box"][0][0]+dets[0]["box"][1][0])/2 < (dets[1]["box"][0][0]+dets[1]["box"][1][0])/2:
         #     people["left_person"] = dets[0]
@@ -185,7 +185,7 @@ class DetectWavingPersonAnkle:
         #     people["left_person"] = dets[1]
         #     people["right_person"] = dets[0]
 
-    
+
 
         hand_up_or_down = {"left_person":{"left_ankle":None}, "right_person":{"right_ankle":None}}
 
@@ -202,29 +202,31 @@ class DetectWavingPersonAnkle:
             people["right_person"] = dets[0]
             for idx, k in enumerate(people['right_person']['key_points']):
                 if KeypointRCNN.PART_STR[idx] in ["left_ankle"]:
-                    hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[:2]       
+                    hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[:2]
                     x=int(hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]][0])
                     y=int(hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]][1])
-                    tmp_rgb_image = cv2.circle(tmp_rgb_image, (x, y), 15, (255, 0, 0), thickness=-1)            
+                    tmp_rgb_image = cv2.circle(tmp_rgb_image, (x, y), 15, (255, 0, 0), thickness=-1)
 
         '''
         part_coordinate={"left_shoulder":{'x':None, 'y':None},"right_shoulder":{'x':None, 'y':None},"left_knee":{'x':None, 'y':None},"right_knee":{'x':None, 'y':None}}
 
         if LorR == "left":
             people["left_person"] = dets[0]
+
             for idx, k in enumerate(people['left_person']['key_points']):
                 if KeypointRCNN.PART_STR[idx] in ["left_shoulder","right_shoulder","left_knee","right_knee"]:
                     hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]] = k[:2]
                     x=int(hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]][0])
                     y=int(hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]][1])
-                    part_coordinate[KeypointRCNN.PART_STR[idx]][x] = x
-                    part_coordinate[KeypointRCNN.PART_STR[idx]][y] = y
+                    part_coordinate[KeypointRCNN.PART_STR[idx]]['x'] = x
+                    part_coordinate[KeypointRCNN.PART_STR[idx]]['y'] = y
+                    print(KeypointRCNN.PART_STR[idx])
 
         else:
             people["right_person"] = dets[0]
             for idx, k in enumerate(people['right_person']['key_points']):
                 if KeypointRCNN.PART_STR[idx] in ["left_shoulder","right_shoulder","left_knee","right_knee"]:
-                    hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[:2]       
+                    hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[:2]
                     x=int(hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]][0])
                     y=int(hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]][1])
                     part_coordinate[KeypointRCNN.PART_STR[idx]][x] = x
@@ -232,7 +234,7 @@ class DetectWavingPersonAnkle:
 
         # person_height = min((part_coordinate['left_knee']['y']-part_coordinate['left_shoulder']['y']), (part_coordinate['right_knee']['y']-part_coordinate['right_shoulder']['y']))
         # person_width = min((part_coordinate['left_shoulder']['x']-part_coordinate['right_shoulder']['x']),(part_coordinate['left_knee']['x']-part_coordinate['right_knee']['x']))
-
+        print(part_coordinate['left_shoulder']['x'])
         left_x = min(part_coordinate['left_shoulder']['x'], part_coordinate['left_knee']['x'])
         right_x = max(part_coordinate['right_shoulder']['x'], part_coordinate['right_knee']['x'])
         shoulder_y = max(part_coordinate['left_shoulder']['y'], part_coordinate['right_shoulder']['y'])
@@ -242,7 +244,7 @@ class DetectWavingPersonAnkle:
         x = int((left_x + right_x)/2)
         y = int((shoulder_y*3+knee_y*2)/5)
         tmp_rgb_image = cv2.circle(tmp_rgb_image, (x, y), 15, (0, 255, 0), thickness=-1) #胴体の中心の点(x,y)
-                    
+
 
 
 
@@ -272,7 +274,7 @@ class DetectWavingPersonAnkle:
         while not rospy.is_shutdown():
             if self.rgb_image is None:
                 continue
-            
+
             LorR = msg.data
             print(msg)
             tmp_depth = copy.copy(self.depth_image)
@@ -285,7 +287,7 @@ class DetectWavingPersonAnkle:
             mask = np.zeros_like(tmp_depth)
             print(mask.shape)
             mask[y-20:y+20,x-20:x+20] = 1
-            
+
             # publish image
             mask_result = np.where(mask,tmp_depth,0)
             mask_result = self.bridge.cv2_to_imgmsg(mask_result, "passthrough")
@@ -309,4 +311,4 @@ if __name__ == '__main__':
     dwpk = DetectWavingPersonAnkle()
     rospy.spin()
 
-   
+
