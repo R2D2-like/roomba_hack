@@ -189,6 +189,7 @@ class DetectWavingPersonAnkle:
 
         hand_up_or_down = {"left_person":{"left_ankle":None}, "right_person":{"right_ankle":None}}
 
+        '''
         if LorR == "left":
             people["left_person"] = dets[0]
             for idx, k in enumerate(people['left_person']['key_points']):
@@ -204,7 +205,47 @@ class DetectWavingPersonAnkle:
                     hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[:2]       
                     x=int(hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]][0])
                     y=int(hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]][1])
-                    tmp_rgb_image = cv2.circle(tmp_rgb_image, (x, y), 15, (255, 0, 0), thickness=-1)                                                                                                                                                           
+                    tmp_rgb_image = cv2.circle(tmp_rgb_image, (x, y), 15, (255, 0, 0), thickness=-1)            
+
+        '''
+        part_coordinate={"left_shoulder":{'x':None, 'y':None},"right_shoulder":{'x':None, 'y':None},"left_knee":{'x':None, 'y':None},"right_knee":{'x':None, 'y':None}}
+
+        if LorR == "left":
+            people["left_person"] = dets[0]
+            for idx, k in enumerate(people['left_person']['key_points']):
+                if KeypointRCNN.PART_STR[idx] in ["left_shoulder","right_shoulder","left_knee","right_knee"]:
+                    hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]] = k[:2]
+                    x=int(hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]][0])
+                    y=int(hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]][1])
+                    part_coordinate[KeypointRCNN.PART_STR[idx]][x] = x
+                    part_coordinate[KeypointRCNN.PART_STR[idx]][y] = y
+
+        else:
+            people["right_person"] = dets[0]
+            for idx, k in enumerate(people['right_person']['key_points']):
+                if KeypointRCNN.PART_STR[idx] in ["left_shoulder","right_shoulder","left_knee","right_knee"]:
+                    hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[:2]       
+                    x=int(hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]][0])
+                    y=int(hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]][1])
+                    part_coordinate[KeypointRCNN.PART_STR[idx]][x] = x
+                    part_coordinate[KeypointRCNN.PART_STR[idx]][y] = y
+
+        # person_height = min((part_coordinate['left_knee']['y']-part_coordinate['left_shoulder']['y']), (part_coordinate['right_knee']['y']-part_coordinate['right_shoulder']['y']))
+        # person_width = min((part_coordinate['left_shoulder']['x']-part_coordinate['right_shoulder']['x']),(part_coordinate['left_knee']['x']-part_coordinate['right_knee']['x']))
+
+        left_x = min(part_coordinate['left_shoulder']['x'], part_coordinate['left_knee']['x'])
+        right_x = max(part_coordinate['right_shoulder']['x'], part_coordinate['right_knee']['x'])
+        shoulder_y = max(part_coordinate['left_shoulder']['y'], part_coordinate['right_shoulder']['y'])
+        knee_y = min(part_coordinate['left_knee']['y'], part_coordinate['right_knee']['y'])
+
+
+        x = int((left_x + right_x)/2)
+        y = int((shoulder_y*3+knee_y*2)/5)
+        tmp_rgb_image = cv2.circle(tmp_rgb_image, (x, y), 15, (0, 255, 0), thickness=-1) #胴体の中心の点(x,y)
+                    
+
+
+
 
         # tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['left_person']['left_elbow'][0]), int(hand_up_or_down['left_person']['left_elbow'][1])), 15, (0, 255, 0), thickness=-1)
         # tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['left_person']['left_wrist'][0]), int(hand_up_or_down['left_person']['left_wrist'][1])), 15, (255, 0, 0), thickness=-1)

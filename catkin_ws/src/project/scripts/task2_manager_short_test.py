@@ -113,7 +113,7 @@ if __name__=='__main__':
     rospy.sleep(5)
 
     #go to wave detection point (step1)
-    # simple_controller = SimpleController()
+    simple_controller = SimpleController()
     # try:
     #     simple_controller.go_straight(1.0)
     #     simple_controller.turn_left(90)
@@ -151,12 +151,14 @@ if __name__=='__main__':
             print("goal(" + str(x) + "," + str(y) + ")")
             ac.set_goal(x, y, 0.0)
             res = ac.send_action()
+            simple_controller.stop()
     else:
             x = res.x
             y = res.y
             print("goal(" + str(x+0.5) + "," + str(y) + ")")
             ac.set_goal(x+0.5, y, 0.0)
             res = ac.send_action()
+            simple_controller.stop()
 
     
     # print("goal(" + str(x+0.3) + "," + str(y) + ")")

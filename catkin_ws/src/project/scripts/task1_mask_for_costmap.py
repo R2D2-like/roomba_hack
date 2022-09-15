@@ -64,6 +64,7 @@ class DetectionDistance:
 
         self.cam_info = data3
 
+
     def process(self):
         # path = "/root/roomba_hack/catkin_ws/src/three-dimensions_tutorial/yolov3/"
 
@@ -85,6 +86,14 @@ class DetectionDistance:
             tmp_rgb_image = copy.copy(self.rgb_image)
             tmp_depth = copy.copy(self.depth_image)
             tmp_caminfo = copy.copy(self.cam_info)
+
+
+            rec = np.zeros_like(tmp_bgr_image)
+            cv2.rectangle(rec, (0,int(rec.shape[0]*2/5)), (int(rec.shape[1]),int(rec.shape[0])), (255, 255, 255), -1)
+
+            tmp_bgr_image = cv2.bitwise_and(tmp_bgr_image, rec)
+            tmp_hsv_image = cv2.bitwise_and(tmp_hsv_image, rec)
+            tmp_rgb_image = cv2.bitwise_and(tmp_rgb_image, rec)
             # print(tmp_caminfo.header)
 
             maskY = cv2.inRange(tmp_hsv_image, self.hsv_min_Y, self.hsv_max_Y)

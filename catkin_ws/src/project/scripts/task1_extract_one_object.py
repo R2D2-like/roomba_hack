@@ -89,6 +89,14 @@ class DetectionDistance:
             # tmp_caminfo = copy.copy(self.cam_info)
             # print(tmp_caminfo.header)
 
+
+            rec = np.zeros_like(tmp_bgr_image)
+            cv2.rectangle(rec, (0,int(rec.shape[0]*2/5)), (int(rec.shape[1]),int(rec.shape[0])), (255, 255, 255), -1)
+
+            tmp_bgr_image = cv2.bitwise_and(tmp_bgr_image, rec)
+            tmp_hsv_image = cv2.bitwise_and(tmp_hsv_image, rec)
+            tmp_rgb_image = cv2.bitwise_and(tmp_rgb_image, rec)
+
             maskY = cv2.inRange(tmp_hsv_image, self.hsv_min_Y, self.hsv_max_Y)
             maskR1 = cv2.inRange(tmp_hsv_image, self.hsv_min_R1, self.hsv_max_R1)
             maskR2 = cv2.inRange(tmp_hsv_image, self.hsv_min_R2, self.hsv_max_R2)
