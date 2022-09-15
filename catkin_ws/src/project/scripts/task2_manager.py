@@ -141,6 +141,7 @@ if __name__=='__main__':
     #send goal (step5)
     rate = rospy.Rate(10)
     ac = ActionGoal()
+    '''
     estimete_x_min = 0.8
     estimete_x_max = 1.7
     estimete_x = 1.5
@@ -157,6 +158,37 @@ if __name__=='__main__':
             print("goal(" + str(x+0.5) + "," + str(y) + ")")
             ac.set_goal(x+0.5, y, 0.0)
             res = ac.send_action()
+    '''
+
+    estimete_x_min = 0.3
+    estimete_x_max = 1.0
+    estimete_x = 1.0
+    print(res.x)
+
+    if (res.x<estimete_x_min) or (estimete_x_max<res.x):
+            x = estimete_x
+            y = res.y
+            if res.left_or_right == 'left':
+                print("goal(" + str(x) + "," + str(y-0.2) + ")")
+                ac.set_goal(x, y-0.2, 0.0)#if left y-0.2, if right y+0.2
+            else:
+                print("goal(" + str(x) + "," + str(y+0.2) + ")")
+                ac.set_goal(x, y+0.2, 0.0)#if left y-0.2, if right y+0.2
+            res = ac.send_action()
+            simple_controller.stop()
+    else:
+            x = res.x
+            y = res.y
+            if res.left_or_right == 'left':
+                print("goal(" + str(x+0.35) + "," + str(y-0.2) + ")")
+                ac.set_goal(x+0.35, y-0.2, 0.0)#if left y-0.2, if right y+0.2
+            else:
+                print("goal(" + str(x+0.35) + "," + str(y+0.2) + ")")
+                ac.set_goal(x+0.35, y+0.2, 0.0)#if left y-0.2, if right y+0.2
+            # print("goal(" + str(x+0.4) + "," + str(y) + ")")
+            # ac.set_goal(x+0.35, y-0.2, 0.0)
+            res = ac.send_action()
+            simple_controller.stop()
 
     
     # print("goal(" + str(x+0.3) + "," + str(y) + ")")

@@ -20,7 +20,7 @@ from geometry_msgs.msg import Quaternion
 class SimpleController:
     def __init__(self):
         #rospy.init_node('simple_controller', anonymous=True)
-
+        
         # Publisher
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
@@ -92,96 +92,68 @@ class ActionGoal:
         self.goal = MoveBaseGoal()  # goalのメッセージの定義
         self.goal.target_pose.header.frame_id = 'map'  # マップ座標系でのゴールとして設定
         self.goal.target_pose.header.stamp = rospy.Time.now()  # 現在時刻
-
+        
         # ゴールの姿勢を指定
         self.goal.target_pose.pose.position.x = x
         self.goal.target_pose.pose.position.y = y
         q = tf.transformations.quaternion_from_euler(0.0, 0.0, yaw)  # 回転はquartanionで記述するので変換
         self.goal.target_pose.pose.orientation = Quaternion(q[0], q[1], q[2], q[3])
-
+ 
     # def send_topic(self):
     #     #self.ps_pub.publish(self.goal)
-    def send_action(self, duration=60.0):
+    def send_action(self, duration=30.0):
         self.action_client.send_goal(self.goal)  # ゴールを命令
         result = self.action_client.wait_for_result(rospy.Duration(duration))
         return result
 
 
 if __name__=='__main__':
-    rospy.init_node('task2_manager', anonymous=True)
-    mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
-    rospy.sleep(7)
+    rospy.init_node('task1_manager', anonymous=True)
+
 
     #go to wave detection point (step1)
     simple_controller = SimpleController()
-    # try:
-    #     simple_controller.go_straight(1.0)
-    #     simple_controller.turn_left(90)
-    # except rospy.ROSInitException:
-    #     pass
-
-    #reqest waving person result(step2)
-    # waving_person = rospy.ServiceProxy('/wave_detection', WavingLeftRight)
-    # res  = waving_person()
-
-    #induce masking ankle(step3)
-    mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
-    #while not rospy.is_shutdown():
-
-    waving_person_str = String()
-    waving_person_str.data = 'left'#res.left_or_right
-    mask_ankle_trigger_pub.publish(waving_person_str)
-    rospy.sleep(0.05)
+    
 
 
-    #reqest goal coordinate(step4)
-    get_coordinate = rospy.ServiceProxy('/get_coordinate', GetGoalPoint)
-    res = get_coordinate()
 
     #send goal (step5)
     rate = rospy.Rate(10)
     ac = ActionGoal()
-    estimete_x_min = 0.3
-    estimete_x_max = 1.0
-    estimete_x = 1.0
-    print(res.x)
+        
+    rospy.sleep(1)
 
-    if (res.x<estimete_x_min) or (estimete_x_max<res.x):
-            x = estimete_x
-            y = res.y
-            if res.left_or_right == 'left':
-                print("goal(" + str(x) + "," + str(y-0.2) + ")")
-                ac.set_goal(x, y-0.2, 0.0)#if left y-0.2, if right y+0.2
-            else:
-                print("goal(" + str(x) + "," + str(y+0.2) + ")")
-                ac.set_goal(x, y+0.2, 0.0)#if left y-0.2, if right y+0.2
-            res = ac.send_action()
-            simple_controller.stop()
-    else:
-            x = res.x
-            y = res.y
-            if res.left_or_right == 'left':
-                print("goal(" + str(x+0.35) + "," + str(y-0.2) + ")")
-                ac.set_goal(x+0.35, y-0.2, 0.0)#if left y-0.2, if right y+0.2
-            else:
-                print("goal(" + str(x+0.35) + "," + str(y+0.2) + ")")
-                ac.set_goal(x+0.35, y+0.2, 0.0)#if left y-0.2, if right y+0.2
-            # print("goal(" + str(x+0.4) + "," + str(y) + ")")
-            # ac.set_goal(x+0.35, y-0.2, 0.0)
-            res = ac.send_action()
-            simple_controller.stop()
+    
+    ac.set_goal(1.0, 1.5, 0.0)
+    res = ac.send_action()
+    simple_controller.stop()
 
+    ac.set_goal(2, 1.5, 0.0)
+    res = ac.send_action()
+    simple_controller.stop()
 
-    # print("goal(" + str(x+0.3) + "," + str(y) + ")")
-    # ac.set_goal(x-0.3, y, 0.0)
-    # res = ac.send_action()
-    print(res)
+    ac.set_goal(3, 1.5, 0.0)
+    res = ac.send_action()
+    simple_controller.stop()
+    
+    ac.set_goal(3.5, 1.5, 0.0)
+    res = ac.send_action()
+    simple_controller.stop()
+
+    ac.set_goal(3.5, 3, 0.0)
+    res = ac.send_action()
+    simple_controller.stop()
+
+    ac.set_goal(3.5, 4, 0.0)
+    res = ac.send_action()
+    simple_controller.stop()
+
     rate.sleep()
 
 
 
+    
 
-
-
+     
 
 
