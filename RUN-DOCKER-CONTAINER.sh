@@ -1,7 +1,7 @@
 #!/bin/bash
 
 IMAGE_NAME=roomba_hack
-CONTAINER_NAME="roomba_hack"
+CONTAINER_NAME="roomba_hack_tsuji"
 echo "$0: IMAGE=${IMAGE_NAME}"
 echo "$0: CONTAINER=${CONTAINER_NAME}"
 

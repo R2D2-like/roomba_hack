@@ -110,16 +110,17 @@ class DetectionDistance:
             ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
             # 輪郭を抽出する。
             contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            contours2 = list(filter(lambda x: cv2.contourArea(x) >= 15000, contours))
-            
-            
+            contours2 = list(filter(lambda x: cv2.contourArea(x) >= 5000, contours))
+
+
             mask = np.zeros_like(maskRGBY)
             for i, cnt in enumerate(contours2):
             # 輪郭に外接する長方形を取得する。
                 x, y, width, height = cv2.boundingRect(cnt)
                 mask[y:y+height,x:x+width] = 1
 
-                mask = mask
+
+            print(len(contours2))
             result = cv2.bitwise_and(tmp_rgb_image, tmp_rgb_image, mask=mask) #RGB
             result = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
             result = self.bridge.cv2_to_imgmsg(result, "bgr8")
@@ -127,7 +128,7 @@ class DetectionDistance:
             self.detection_result_pub.publish(result)
                 #rospy.sleep(0.1)
 
-            
+
 
             # boxes = detect.detect_image(model, tmp_rgb_image)
             # # [[x1, y1, x2, y2, confidence, class]]

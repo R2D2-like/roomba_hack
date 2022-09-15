@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from os import TMP_MAX
+from re import X
 import rospy
 import message_filters
 from sensor_msgs.msg import Image
@@ -111,7 +112,7 @@ class DetectionDistance:
             ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
             # 輪郭を抽出する。
             contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            contours2 = list(filter(lambda x: cv2.contourArea(x) >= 15000, contours))
+            contours2 = list(filter(lambda x: cv2.contourArea(x) >= 5000, contours))
 
             crop_image_list = []
             roslist = ImageArray()
@@ -126,7 +127,7 @@ class DetectionDistance:
                 crop_image_list.append(result)
                 #self.mask_result_pub.publish(result)
                 #rospy.sleep(0.1)
-
+            print(len(crop_image_list))
             roslist.image_array = crop_image_list
             self.mask_result_pub.publish(roslist)
 
