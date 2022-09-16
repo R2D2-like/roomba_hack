@@ -12,6 +12,7 @@ import matplotlib.patches as patches
 import cv2
 import copy
 import numpy as np
+import time
 
 
 class DetectionDistance:
@@ -19,7 +20,7 @@ class DetectionDistance:
         rospy.init_node('task1_mask_for_costmap', anonymous=True)
 
         # Publisher
-        self.detection_result_pub = rospy.Publisher('/detection_result', Image, queue_size=10)
+        self.detection_result_pub = rospy.Publisher('/task1/detection_result/costmap', Image, queue_size=10)
         self.depth_mask_pub = rospy.Publisher('/task1/masked_depth/image', Image, queue_size=10)
         self.cam_info_pub = rospy.Publisher('/task1/masked_depth/camera_info', CameraInfo, queue_size=10)
 
@@ -63,6 +64,7 @@ class DetectionDistance:
         self.depth_image = cv_array
 
         self.cam_info = data3
+        self.callback_time = rospy.Time.now().secs
 
 
     def process(self):
@@ -117,7 +119,7 @@ class DetectionDistance:
             for i, cnt in enumerate(contours2):
             # 輪郭に外接する長方形を取得する。
                 x, y, width, height = cv2.boundingRect(cnt)
-                mask[y:y+height,x:x+width] = 1
+                mask[int(y+height/5):int(y+height*4/5), int(x+width/5):int(x+width*4/5)] = 1
 
 
             print(len(contours2))
@@ -158,6 +160,10 @@ class DetectionDistance:
             #self.detection_result_pub.publish(detection_result)
             self.depth_mask_pub.publish(mask_result)
             self.cam_info_pub.publish(tmp_caminfo)
+            t_now = rospy.Time.now().secs
+            print('calllback : ' + str(self.callback_time) )
+            print('publish : ' + str(t_now))
+            print('diff : ' + str(t_now - self.callback_time))
 
 
 if __name__ == '__main__':

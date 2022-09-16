@@ -42,7 +42,7 @@ class Detection_neo:
     def process(self):
         self.image=self.preprocess(self.rgb_image).unsqueeze(0).to(self.device)
         texts=["a strawberry","a sports ball","an apple","a banana","a toy plane","a chips can","a rubiks cube","a yellow wood block"]
-        texts2=["a photo of a strawberry, a type of fruit","a photo of a blue sports ball","a photo of an apple, type of fruit","a photo of a banana, type of fruit","a phot of a toy plane","a photo of a chips can ","a photo of a various color cube","a photo of a yellow cube"]
+        texts2=["a photo of a strawberry, a type of fruit","a photo of a blue sports ball","a photo of an apple, a type of fruit","a photo of a yellow banana, type of fruit","a phot of a toy plane","a photo of a chips can ","a photo of a colorful rubiks cube","a photo of a yellow cube"]
         text=clip.tokenize(texts2).to(self.device)
 
         with torch.no_grad():

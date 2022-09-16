@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-#from tracemalloc import reset_peak
 import numpy as np
 
 import rospy
@@ -25,7 +24,6 @@ class SimpleController:
         # Publisher
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
-
         # Subscriber
         odom_sub = rospy.Subscriber('/odom', Odometry, self.callback_odom)
 
@@ -40,7 +38,7 @@ class SimpleController:
         self.y = data.pose.pose.position.y
         self.yaw = self.get_yaw_from_quaternion(data.pose.pose.orientation)
 
-    def go_straight(self, dis, velocity=0.3):
+    def go_straight(self, dis, velocity=0.2):
         vel = Twist()
         x0 = self.x
         y0 = self.y
@@ -61,7 +59,7 @@ class SimpleController:
             rospy.sleep(0.1)
         self.stop()
 
-    def turn_left(self, yaw, yawrate=0.5):
+    def turn_left(self, yaw, yawrate=0.8):
         vel = Twist()
         yaw0 = self.yaw
         while(abs(self.yaw-yaw0)<np.deg2rad(yaw)):
@@ -90,6 +88,7 @@ class ActionGoal:
         self.action_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.action_client.wait_for_server()  # action serverの準備ができるまで待つ
 
+
     def set_goal(self, x, y, yaw):
         self.goal = MoveBaseGoal()  # goalのメッセージの定義
         self.goal.target_pose.header.frame_id = 'map'  # マップ座標系でのゴールとして設定
@@ -103,91 +102,110 @@ class ActionGoal:
 
     # def send_topic(self):
     #     #self.ps_pub.publish(self.goal)
-    def send_action(self, duration=30.0):
+    def send_action(self, duration=50.0):
         self.action_client.send_goal(self.goal)  # ゴールを命令
         result = self.action_client.wait_for_result(rospy.Duration(duration))
         return result
 
+    def cancel(self):
+        self.action_client.cancel_all_goals()
 
-if __name__=='__main__':
-    rospy.init_node('task1_manager', anonymous=True)
-    action_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-    action_client.wait_for_server()  # action serverの準備ができるまで待つ
+def callback(data):
+     #go to wave detection point (step1)
 
 
-    #go to wave detection point (step1)
     simple_controller = SimpleController()
 
+    mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
+    ac = ActionGoal()
+    #reqest waving person result(step2)
+    waving_person = rospy.ServiceProxy('/wave_detection', WavingLeftRight)
+    res  = waving_person()
+    rospy.sleep(0.5)
+    #induce masking ankle(step3)
+    mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
+    #while not rospy.is_shutdown():
+
+    print(res.left_or_right)
+    left_or_right = res.left_or_right
+    waving_person_str = String()
+    waving_person_str.data = res.left_or_right
+    mask_ankle_trigger_pub.publish(waving_person_str)
+    rospy.sleep(0.05)
 
 
+    #reqest goal coordinate(step4)
+    get_coordinate = rospy.ServiceProxy('/get_coordinate', GetGoalPoint)
+    res = get_coordinate()
 
     #send goal (step5)
     rate = rospy.Rate(10)
-    ac = ActionGoal()
+    # ac = ActionGoal()
+    '''
+    estimete_x_min = 0.8
+    estimete_x_max = 1.7
+    estimete_x = 1.5
 
-    rospy.sleep(1)
+    if (res.x<estimete_x_min) or (estimete_x_max<res.x):
+            x = estimete_x
+            y = res.y
+            print("goal(" + str(x) + "," + str(y) + ")")
+            ac.set_goal(x, y, 0.0)
+            res = ac.send_action()
+    else:
+            x = res.x
+            y = res.y
+            print("goal(" + str(x+0.5) + "," + str(y) + ")")
+            ac.set_goal(x+0.5, y, 0.0)
+            res = ac.send_action()
+    '''
+
+    estimete_x_min = 0.3
+    estimete_x_max = 1.0
+    estimete_x = 1.0
+    print(res.x)
+
+    if (res.x<estimete_x_min) or (estimete_x_max<res.x):
+            x = estimete_x
+            y = res.y
+            if left_or_right == 'left':
+                print("goal(" + str(x) + "," + str(y-0.2) + ")")
+                ac.set_goal(x, y-0.2, 0.0)#if left y-0.2, if right y+0.2
+            else:
+                print("goal(" + str(x) + "," + str(y+0.2) + ")")
+                ac.set_goal(x, y, 0.0)#if left y-0.2, if right y+0.2
+            res = ac.send_action()
+            simple_controller.stop()
+    else:
+            x = res.x
+            y = res.y
+            if left_or_right == 'left':
+                print("goal(" + str(x+0.35) + "," + str(y-0.2) + ")")
+                ac.set_goal(x+0.25, y-0.2, 0.0)#if left y-0.2, if right y+0.2
+            else:
+                print("goal(" + str(x+0.35) + "," + str(y+0.2) + ")")
+                ac.set_goal(x+0.25, y, 0.0)#if left y-0.2, if right y+0.2
+            # print("goal(" + str(x+0.4) + "," + str(y) + ")")
+            # ac.set_goal(x+0.35, y-0.2, 0.0)
+            res = ac.send_action()
+            simple_controller.stop()
 
 
-    ac.set_goal(1.5, 1.5, 0.0)
-    res1 = ac.send_action()
-    simple_controller.stop()
-    print(res1)
-    action_client.cancel_all_goals()
-
-    if not res1:
-        simple_controller.go_straight(0.3,-0.2)
-        rospy.sleep(1)
-        ac.set_goal(1.5, 2, 0.0)
-        res1_2 = ac.send_action()
-        simple_controller.stop()
-        print(res1_2)
-        action_client.cancel_all_goals()
-
-
-    # ac.set_goal(2, 1.5, 0.0)
+    # print("goal(" + str(x+0.3) + "," + str(y) + ")")
+    # ac.set_goal(x-0.3, y, 0.0)
     # res = ac.send_action()
-    # simple_controller.stop()
-
-    # ac.set_goal(3, 1.5, 0.0)
-    # res = ac.send_action()
-    # simple_controller.stop()
-
-    rospy.sleep(1)
-    ac.set_goal(3.5, 2.5, 0.0)
-    res2 = ac.send_action(45)
-    simple_controller.stop()
-    print(res2)
-    action_client.cancel_all_goals()
-
-
-    if not res2:
-        simple_controller.go_straight(0.3,-0.2)
-        rospy.sleep(1)
-        ac.set_goal(3.5, 3, 0.0)
-        res2_2 = ac.send_action()
-        simple_controller.stop()
-        print(res2_2)
-        action_client.cancel_all_goals()
-
-    # ac.set_goal(3.5, 3, 0.0)
-    # res = ac.send_action()
-    # simple_controller.stop()
-    rospy.sleep(1)
-    ac.set_goal(3.5, 4, 0.0)
-    res3 = ac.send_action()
-    simple_controller.stop()
-    print(res3)
-
-    if not res3:
-        simple_controller.go_straight(0.3,-0.2)
-        rospy.sleep(1)
-        ac.set_goal(3.5, 4, 0.0)
-        res3_2 = ac.send_action()
-        simple_controller.stop()
-        print(res3_2)
-        action_client.cancel_all_goals()
-
+    print(res)
     rate.sleep()
+
+
+if __name__=='__main__':
+    rospy.init_node('task2_manager', anonymous=True)
+    sub = rospy.Subscriber('/task2/manager/trigger', String, callback)
+
+    rospy.spin()
+    #rospy.sleep(5)
+
+
 
 
 

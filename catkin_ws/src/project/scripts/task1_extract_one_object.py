@@ -112,7 +112,7 @@ class DetectionDistance:
             ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
             # 輪郭を抽出する。
             contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            contours2 = list(filter(lambda x: cv2.contourArea(x) >= 5000, contours))
+            contours2 = list(filter(lambda x: cv2.contourArea(x) >= 1000, contours))
 
             crop_image_list = []
             roslist = ImageArray()

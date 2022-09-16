@@ -12,7 +12,7 @@ import numpy as np
 import rospy
 import torch
 import torchvision
-import torchvision.transforms 
+import torchvision.transforms
 
 
 from sensor_msgs.msg import Image
@@ -40,7 +40,7 @@ class KeypointRCNN:
     PART_STR = ["nose","left_eye","right_eye","left_ear","right_ear","left_shoulder",
                 "right_shoulder","left_elbow","right_elbow","left_wrist","right_wrist",
                 "left_hip","right_hip","left_knee","right_knee","left_ankle","right_ankle"]
-    
+
     def __init__(self):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -53,9 +53,9 @@ class KeypointRCNN:
         img = transform(rgb_img).to(self.device)
         with torch.no_grad():
             pred = self.model([img])[0]
-       
-        #tensor2np.array2list       
-        pred_class = [KeypointRCNN.COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred['labels'].detach().cpu().numpy())] 
+
+        #tensor2np.array2list
+        pred_class = [KeypointRCNN.COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred['labels'].detach().cpu().numpy())]
         pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred['boxes'].detach().cpu().numpy())]
         pred_score = list(pred['scores'].detach().cpu().numpy())
         pred_keypoints = list(pred['keypoints'].cpu().detach().numpy())
@@ -93,11 +93,11 @@ class KeypointRCNN:
                 if (x0 < X0) and (X0 < x1):#X0 is within the area of  the det_result's bounding boxs, so we should not include det_result
                     flag = True
                     break
-            
+
             without_overlap_det_results.append(det_result)
 
         return without_overlap_det_results
-    
+
 
 
 class WavingDetector:
@@ -116,7 +116,7 @@ class WavingDetector:
 
         # service
         self.wave_detection_service = rospy.Service('/wave_detection', WavingLeftRight, self.wave_detection)
-    
+
         self.left_cnt = 0
         self.right_cnt = 0
         self.rgb_image = None
@@ -129,13 +129,13 @@ class WavingDetector:
             rospy.logerr(cv_bridge_exception)
 
 
-        
+
 
     def left_or_right_detection(self):
 
         if self.rgb_image is None:
             return
-            
+
         rgb_img_copy= self.rgb_image.copy()
         tmp_rgb_image = copy.copy(self.rgb_image)
 
@@ -151,11 +151,11 @@ class WavingDetector:
 
         #dets = sorted(dets.items(),key=lambda det: det["box_area"], reverse=True)
         dets.sort(key=lambda det: det["box_area"], reverse=True)
-        
+
         # examine the biggest BB is whether left or right person (step4)
 
         people = {}
-   
+
 
         if (dets[0]["box"][0][0]+dets[0]["box"][1][0])/2 < (dets[1]["box"][0][0]+dets[1]["box"][1][0])/2:
             people["left_person"] = dets[0]
@@ -171,23 +171,23 @@ class WavingDetector:
 
         for idx, k in enumerate(people['left_person']['key_points']):
             if KeypointRCNN.PART_STR[idx] in ['left_wrist', 'right_wrist', 'left_elbow', 'right_elbow']:
-                hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]] = k[:2]  
+                hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]] = k[:2]
 
         for idx, k in enumerate(people['right_person']['key_points']):
             if KeypointRCNN.PART_STR[idx] in ['left_wrist', 'right_wrist', 'left_elbow', 'right_elbow']:
-                hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[:2]                                                                                                                                                                          
+                hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[:2]
 
         elbow_wrist = {"left_person":None,'right_person':None }
         elbow_wrist['left_person'] = max((hand_up_or_down['left_person']['left_elbow'][1] - hand_up_or_down['left_person']['left_wrist'][1]), \
             (hand_up_or_down['left_person']['right_elbow'][1] - hand_up_or_down['left_person']['right_wrist'][1]))
         elbow_wrist['right_person'] = max((hand_up_or_down['right_person']['left_elbow'][1] - hand_up_or_down['right_person']['left_wrist'][1]), \
             (hand_up_or_down['right_person']['right_elbow'][1] - hand_up_or_down['right_person']['right_wrist'][1]))
-                                  
+
         if elbow_wrist['left_person']>elbow_wrist['right_person']:
             self.left_cnt += 1
         else:
             self.right_cnt += 1
-    
+
         tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['left_person']['left_elbow'][0]), int(hand_up_or_down['left_person']['left_elbow'][1])), 15, (0, 255, 0), thickness=-1)
         tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['left_person']['left_wrist'][0]), int(hand_up_or_down['left_person']['left_wrist'][1])), 15, (255, 0, 0), thickness=-1)
         tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['left_person']['right_elbow'][0]), int(hand_up_or_down['left_person']['right_elbow'][1])), 15, (100, 100, 0), thickness=-1)
@@ -211,7 +211,7 @@ class WavingDetector:
 
         t = rospy.Time.now()
 
-        while rospy.Time.now().secs - t.secs < 20.0:
+        while rospy.Time.now().secs - t.secs < 30.0:
             rospy.sleep(0.05)
             self.left_or_right_detection()
 
