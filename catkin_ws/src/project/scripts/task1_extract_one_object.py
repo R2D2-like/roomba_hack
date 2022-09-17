@@ -120,7 +120,7 @@ class DetectionDistance:
             # 輪郭に外接する長方形を取得する。
                 x, y, width, height = cv2.boundingRect(cnt)
                 mask = np.zeros_like(maskRGBY)
-                mask[y:y+height,x:x+width] = 1
+                mask[int(y-height/5):int(y+height*6/5),int(x-width/5):int(x+width*6/5)] = 1
                 result = cv2.bitwise_and(tmp_rgb_image, tmp_rgb_image, mask=mask) #RGB
                 result = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
                 result = self.bridge.cv2_to_imgmsg(result, "bgr8")

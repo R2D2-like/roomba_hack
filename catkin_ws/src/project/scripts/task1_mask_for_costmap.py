@@ -120,6 +120,7 @@ class DetectionDistance:
             # 輪郭に外接する長方形を取得する。
                 x, y, width, height = cv2.boundingRect(cnt)
                 mask[int(y+height/5):int(y+height*4/5), int(x+width/5):int(x+width*4/5)] = 1
+                #mask[int(y-height/5):int(y+height*6/5),int(x-width/5):int(x+width*6/5)] = 1
 
 
             print(len(contours2))
