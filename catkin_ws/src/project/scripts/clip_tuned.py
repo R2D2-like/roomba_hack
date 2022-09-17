@@ -65,7 +65,10 @@ class Detection_neo:
         '''
 
         #probs=list(probs)
-        self.counter[idx] += 1
+        #self.counter[idx] += 1
+
+        if np.max(probs) > 0.7:
+            self.counter[idx] += 1
 
         '''
         for idx in range(len(probs)):
