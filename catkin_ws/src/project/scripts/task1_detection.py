@@ -15,6 +15,8 @@ import cv2
 import copy
 import numpy as np
 
+
+
 # from project.msg import ImageArray
 
 import torch
@@ -39,7 +41,9 @@ class DetectionDistance:
         self.text=clip.tokenize(self.texts2).to(self.device)
 
         # Subscriber
-        rgb_sub = rospy.Subscriber('/camera/color/image_raw', Image,self.callback_rgbd)
+        rgb_sub = rospy.Subscriber('/camera/color/image_raw', Image,self.callback_rgb)
+
+        
 
         self.bridge = CvBridge()
         self.rgb_image = None
@@ -64,17 +68,12 @@ class DetectionDistance:
         self.hsv_min_G = np.array([30, 64, 0])
         self.hsv_max_G = np.array([90,255,255])
 
-    def callback_rgbd(self, data1, data2, data3):
-        cv_array = self.bridge.imgmsg_to_cv2(data1, 'bgr8')
+    def callback_rgb(self, data):
+        cv_array = self.bridge.imgmsg_to_cv2(data, 'bgr8')
         self.bgr_image = cv_array
         self.hsv_image = cv2.cvtColor(cv_array, cv2.COLOR_BGR2HSV) # 画像をHSVに変換
         cv_array = cv2.cvtColor(cv_array, cv2.COLOR_BGR2RGB)
         self.rgb_image = cv_array
-
-        cv_array = self.bridge.imgmsg_to_cv2(data2, 'passthrough')
-        self.depth_image = cv_array
-
-        # self.cam_info = data3
 
     def process(self):
         # path = "/root/roomba_hack/catkin_ws/src/three-dimensions_tutorial/yolov3/"
@@ -142,6 +141,7 @@ class DetectionDistance:
 
                 idx=np.argmax(probs)
                 
+
                 # crop_image_list.append(result)
                 #self.mask_result_pub.publish(result)
                 #rospy.sleep(0.1)

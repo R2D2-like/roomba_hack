@@ -8,5 +8,5 @@
     <remap from="image_rect" to="/task1/masked_depth/image"/>
     <remap from="points" to="/obstacle_cloud"/>
   </node>
-  <node pkg="project" type="task1_mask_for_costmap.py" name="task1_mask_for_costmap" output="screen" />
+  <node pkg="project" type="task1_mask_for_costmap_server.py" name="task1_mask_for_costmap_server" output="screen" />
 </launch>

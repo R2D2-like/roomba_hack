@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 from os import TMP_MAX
-from re import X
-from subprocess import call
 import rospy
 import message_filters
 from sensor_msgs.msg import Image
@@ -14,35 +12,32 @@ import matplotlib.patches as patches
 import cv2
 import copy
 import numpy as np
+import time
 
-# from project.msg import ImageArray
+from std_srvs.srv import Empty
+from std_srvs.srv import EmptyResponse
 
-import torch
-import clip
-import PIL
 
 class DetectionDistance:
     def __init__(self):
-        rospy.init_node('task1_clip_unified', anonymous=True)
+        rospy.init_node('task1_mask_for_costmap_server', anonymous=True)
 
         # Publisher
-        #self.detection_result_pub = rospy.Publisher('/detection_result', Image, queue_size=10)
-        #self.depth_mask_pub = rospy.Publisher('/task1/masked_depth/image', Image, queue_size=10)
-        #self.cam_info_pub = rospy.Publisher('/task1/masked_depth/camera_info', CameraInfo, queue_size=10)
-        self.detect_result=[]
-        self.texts=["a strawberry","a sports ball","an apple","a banana","a toy plane","a chips can","a rubiks cube","a yellow wood block"]
-        self.texts2=["a photo of a strawberry, a type of fruit","a photo of a blue sports ball","a photo of an apple, a type of fruit","a photo of a yellow banana, type of fruit","a phot of a toy plane","a photo of a chips can ","a photo of a colorful rubiks cube","a photo of a yellow cube"]
-
-        self.device='cuda'
-        self.model, self.preprocess = clip.load("ViT-L/14@336px", device='cuda', jit=False)
-        self.counter = [0,0,0,0,0,0,0,0]
-        self.text=clip.tokenize(self.texts2).to(self.device)
+        self.detection_result_pub = rospy.Publisher('/task1/detection_result/costmap', Image, queue_size=10)
+        self.depth_mask_pub = rospy.Publisher('/task1/masked_depth/image', Image, queue_size=10)
+        self.cam_info_pub = rospy.Publisher('/task1/masked_depth/camera_info', CameraInfo, queue_size=10)
 
         # Subscriber
-        rgb_sub = rospy.Subscriber('/camera/color/image_raw', Image,self.callback_rgbd)
+        rgb_sub = message_filters.Subscriber('/camera/color/image_raw', Image)
+        depth_sub = message_filters.Subscriber('/camera/aligned_depth_to_color/image_raw', Image)
+        cam_info_sub = message_filters.Subscriber('/camera/color/camera_info',CameraInfo)
+        message_filters.ApproximateTimeSynchronizer([rgb_sub, depth_sub, cam_info_sub], 10, 1.0).registerCallback(self.callback_rgbd)
+
+        #service
+        self.detection_srv = rospy.Service('/add_map', Empty, self.process)
 
         self.bridge = CvBridge()
-        self.rgb_image = None
+        self.rgb_image, self.depth_image = None, None
 
         #黄色
         self.hsv_min_Y = np.array([20, 80, 10])    # 抽出する色の下限(HSV)
@@ -74,9 +69,11 @@ class DetectionDistance:
         cv_array = self.bridge.imgmsg_to_cv2(data2, 'passthrough')
         self.depth_image = cv_array
 
-        # self.cam_info = data3
+        self.cam_info = data3
+        self.callback_time = rospy.Time.now().secs
 
-    def process(self):
+
+    def process(self, req):
         # path = "/root/roomba_hack/catkin_ws/src/three-dimensions_tutorial/yolov3/"
 
         # # load category
@@ -86,7 +83,8 @@ class DetectionDistance:
         # # prepare model
         # model = models.load_model(path+"config/yolov3.cfg", path+"weights/yolov3.weights")
 
-        while not rospy.is_shutdown():
+        start_time = rospy.Time.now()
+        while (rospy.Time.now().secs - start_time.secs) < 5.0:
             if self.rgb_image is None:
                 continue
 
@@ -95,9 +93,8 @@ class DetectionDistance:
             tmp_bgr_image = copy.copy(self.bgr_image)
             tmp_hsv_image = copy.copy(self.hsv_image)
             tmp_rgb_image = copy.copy(self.rgb_image)
-            #tmp_depth = copy.copy(self.depth_image)
-            # tmp_caminfo = copy.copy(self.cam_info)
-            # print(tmp_caminfo.header)
+            tmp_depth = copy.copy(self.depth_image)
+            tmp_caminfo = copy.copy(self.cam_info)
 
 
             rec = np.zeros_like(tmp_bgr_image)
@@ -106,6 +103,7 @@ class DetectionDistance:
             tmp_bgr_image = cv2.bitwise_and(tmp_bgr_image, rec)
             tmp_hsv_image = cv2.bitwise_and(tmp_hsv_image, rec)
             tmp_rgb_image = cv2.bitwise_and(tmp_rgb_image, rec)
+            # print(tmp_caminfo.header)
 
             maskY = cv2.inRange(tmp_hsv_image, self.hsv_min_Y, self.hsv_max_Y)
             maskR1 = cv2.inRange(tmp_hsv_image, self.hsv_min_R1, self.hsv_max_R1)
@@ -123,31 +121,24 @@ class DetectionDistance:
             contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             contours2 = list(filter(lambda x: cv2.contourArea(x) >= 1000, contours))
 
-            # crop_image_list = []
-            # roslist = ImageArray()
+
+            mask = np.zeros_like(maskRGBY)
             for i, cnt in enumerate(contours2):
             # 輪郭に外接する長方形を取得する。
                 x, y, width, height = cv2.boundingRect(cnt)
-                mask = np.zeros_like(maskRGBY)
-                mask[int(y-height/5):int(y+height*6/5),int(x-width/5):int(x+width*6/5)] = 1
-                result = cv2.bitwise_and(tmp_rgb_image, tmp_rgb_image, mask=mask) #RGB
-                self.image=self.preprocess(result).unsqueeze(0).to(self.device)
-                
-                with torch.no_grad():
-                    image_features=self.model.encode_image(self.image)
-                    text_features=self.model.encode_text(self.text)
+                mask[int(y+height/5):int(y+height*4/5), int(x+width/5):int(x+width*4/5)] = 1
+                #mask[int(y-height/5):int(y+height*6/5),int(x-width/5):int(x+width*6/5)] = 1
 
-                    logits_per_image,logits_per_text=self.model(self.image, text)
-                    probs=logits_per_image.softmax(dim=-1).cpu().numpy()
 
-                idx=np.argmax(probs)
-                
-                # crop_image_list.append(result)
-                #self.mask_result_pub.publish(result)
+            print(len(contours2))
+            result = cv2.bitwise_and(tmp_rgb_image, tmp_rgb_image, mask=mask) #RGB
+            result = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
+            result = self.bridge.cv2_to_imgmsg(result, "bgr8")
+
+            self.detection_result_pub.publish(result)
                 #rospy.sleep(0.1)
-            # print(len(crop_image_list))
-            # roslist.image_array = crop_image_list
-            # self.mask_result_pub.publish(roslist)
+
+
 
             # boxes = detect.detect_image(model, tmp_rgb_image)
             # # [[x1, y1, x2, y2, confidence, class]]
@@ -167,22 +158,25 @@ class DetectionDistance:
             #     cx, cy = (x1+x2)//2, (y1+y2)//2
             #     print(category[cls_pred], self.depth_image[cy][cx]/1000, "m")
 
-            # # publish image
+            # publish image
 
             # tmp_image = cv2.cvtColor(tmp_rgb_image, cv2.COLOR_RGB2BGR)
             # detection_result = self.bridge.cv2_to_imgmsg(tmp_image, "bgr8")
-            # mask_result = np.where(maskRGBY,tmp_depth,0)
-            # mask_result = self.bridge.cv2_to_imgmsg(mask_result, "passthrough")
-            # mask_result.header = tmp_caminfo.header
-            # self.detection_result_pub.publish(detection_result)
-            # self.depth_mask_pub.publish(mask_result)
-            # self.cam_info_pub.publish(tmp_caminfo)
+            mask_result = np.where(mask,tmp_depth,0)
+            mask_result = self.bridge.cv2_to_imgmsg(mask_result, "passthrough")
+            mask_result.header = tmp_caminfo.header
+            #self.detection_result_pub.publish(detection_result)
+            self.depth_mask_pub.publish(mask_result)
+            self.cam_info_pub.publish(tmp_caminfo)
+            t_now = rospy.Time.now().secs
+            print('calllback : ' + str(self.callback_time) )
+            print('publish : ' + str(t_now))
+            print('diff : ' + str(t_now - self.callback_time))
+
+        return EmptyResponse()
 
 
 if __name__ == '__main__':
     dd = DetectionDistance()
-    try:
-        dd.process()
-    except rospy.ROSInitException:
-        pass
+    rospy.spin()
 
