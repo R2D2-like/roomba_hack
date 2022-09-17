@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <launch>
-    <node pkg="project" type="task2_add_tf.py" name="task2_add_tf" output="screen">
-    <node pkg="project" type="task2_determine_coordinate.py" name="task2_determine_coordinate" output="screen">
-    <node pkg="project" type="task2_manager_subscriber.py" name="task2_manager_subscriber" output="screen">
-    <node pkg="project" type="task2_simple_control.py" name="task2_simple_control" output="screen">
-    <node pkg="project" type="task2_mask_waving_person.py" name="task2_mask_waving_person" output="screen">
-    <node pkg="project" type="task2_waving_detection.py" name="task2_waving_detection" output="screen">
-    <include file="$(find project)/launch/task2_object_depth2pc.launch"/></include>
-</launch>>
+    <node pkg="project" type="task2_add_tf.py" name="task2_add_tf" output="screen"/>
+    <node pkg="project" type="task2_determine_coordinate.py" name="task2_determine_coordinate" output="screen"/>
+    <node pkg="project" type="task2_manager_subscriber.py" name="task2_manager_subscriber" output="screen"/>
+    <node pkg="project" type="task2_simple_control.py" name="task2_simple_control" output="screen"/>
+    <node pkg="project" type="task2_mask_waving_person.py" name="task2_mask_waving_person" output="screen"/>
+    <node pkg="project" type="task2_waving_detection.py" name="task2_waving_detection" output="screen"/>
+    <include file="$(find project)/launch/task2_object_depth2pc.launch"></include>
+</launch>
