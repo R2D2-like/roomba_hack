@@ -128,9 +128,27 @@ class DetectionDistance:
             # 輪郭に外接する長方形を取得する。
                 x, y, width, height = cv2.boundingRect(cnt)
                 mask = np.zeros_like(maskRGBY)
-                mask[int(y-height/5):int(y+height*6/5),int(x-width/5):int(x+width*6/5)] = 1
+                mask_y1 = int(y-height/5)
+                mask_y2 = int(y+height*6/5)
+                mask_x1 = int(x-width/5)
+                mask_x2 = int(x+width*6/5)
+                
+                if not(0 < = mask_y1 <= 720):
+                    mask_y1 = y
+                if not(0 < = mask_y2 <= 720):
+                    mask_y2 = y+height
+                if not(0 < = mask_x1 <= 1280):
+                    mask_x1 = x
+                if not(0 < = mask_x2 <= 1280):
+                    mask_x2 = x+width
+
+                #mask[int(y-height/5):int(y+height*6/5),int(x-width/5):int(x+width*6/5)] = 1
+                mask[mask_y1:mask_y2, mask_x1:mask_x2] = 1
                 result = cv2.bitwise_and(tmp_rgb_image, tmp_rgb_image, mask=mask) #RGB
-                self.image=self.preprocess(result).unsqueeze(0).to(self.device)
+
+                image_pil = Image.fromarray(result)   #opencv2pil
+                image_pil = image_pil.convert('RGB')
+                self.image=self.preprocess(image_pil).unsqueeze(0).to(self.device)
                 
                 with torch.no_grad():
                     image_features=self.model.encode_image(self.image)
@@ -140,6 +158,195 @@ class DetectionDistance:
                     probs=logits_per_image.softmax(dim=-1).cpu().numpy()
 
                 idx=np.argmax(probs)
+                area = height*width
+
+
+                #画像処理による修正
+
+
+                #sports ball
+
+                if idx == 1: 
+
+                #青色抽出
+                extractB = cv2.bitwise_and(result, result, mask=maskB)
+                gray = cv2.cvtColor(extractB,cv2.COLOR_RGB2GRAY)
+                ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
+
+                # 輪郭を抽出する。
+                contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                contours2 = list(filter(lambda x: cv2.contourArea(x) >= 80, contours))
+                target_idx = 0
+                # 輪郭に外接する長方形を取得する。
+                
+                if len(contours2) == 0: #青がない
+    
+                    #緑抽出
+                    extractG = cv2.bitwise_and(result, result, mask=maskG)
+                    gray = cv2.cvtColor(extractG,cv2.COLOR_RGB2GRAY)
+                    ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
+                    contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    contours2 = list(filter(lambda x: cv2.contourArea(x) >= 80, contours))
+
+                    # 輪郭に外接する長方形を取得する。
+
+                    if len(contours2) != 0: #緑がない
+                        idx = 0
+                        #print('strawberry')
+                    else:
+                        probs = list(probs)
+                        if probs[0][0] > probs[0][2]:
+                            idx = 0
+                            #print('strawberry')
+                        else:
+                            idx = 2
+                            #print('apple')
+        
+                else: #青がある
+                    x2, y2, width2, height2 = cv2.boundingRect(contours2[target_idx])
+                    if height2*width2/area > 0.6:
+                        idx = 1
+                        #print('soccer ball')
+                    else:
+                        #緑抽出
+                        extractG = cv2.bitwise_and(result, result, mask=maskG)
+                        gray = cv2.cvtColor(extractG,cv2.COLOR_RGB2GRAY)
+                        ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
+                        contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                        contours2 = list(filter(lambda x: cv2.contourArea(x) >= 80, contours))
+
+                        # 輪郭に外接する長方形を取得する。
+
+                        if len(contours2) != 0: #緑がある
+                            idx = 0
+                            #print('strawberry')
+                        else: #緑がない
+                            probs = list(probs)
+                            if probs[0][0] > probs[0][2]:
+                                idx = 0
+                                #print('strawberry')
+                            else:
+                                idx = 2
+                                #print('apple')
+
+                # apple
+
+                if idx == 2:
+                    if abs(width-height)/max(width, height) > 0.2:
+                        idx = 5
+                        #print('chips')
+                    else:
+                        #黄色抽出
+                        extractY = cv2.bitwise_and(result, result, mask=maskY)
+                        gray = cv2.cvtColor(extractY,cv2.COLOR_RGB2GRAY)
+                        ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
+                        contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                        contours2 = list(filter(lambda x: cv2.contourArea(x) >= 80, contours))
+                        target_idx = 0
+  
+                        if len(contours2) == 0: #黄色がない
+                            idx = 2
+                            #print('apple')
+                        else:
+                            if width/height >1.5:
+                                idx = 3
+                                #print('banana')
+                            else:
+                                idx = 7
+                                #print('yellow block')
+
+                #strawberry or apple
+
+                if idx == 0 or idx == 2:
+
+                    #緑抽出
+                    extractG = cv2.bitwise_and(result, result, mask=maskG)
+                    gray = cv2.cvtColor(extractG,cv2.COLOR_RGB2GRAY)
+                    ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
+                    contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    contours2 = list(filter(lambda x: cv2.contourArea(x) >= 80, contours))
+
+                    # 輪郭に外接する長方形を取得する。
+
+                    if len(contours2) != 0: #緑がある
+                        idx = 0
+                        #print('strawberry')
+                    else: #緑がない
+                        probs = list(probs)
+                        if probs[0][0] > probs[0][2]:
+                            idx = 0
+                            #print('strawberry')
+                        else:
+                            idx = 2
+                            #print('apple')
+
+                # chips
+
+                if idx == 5:
+
+                    #黄色抽出
+                    extractY = cv2.bitwise_and(result, result, mask=maskY)
+                    gray = cv2.cvtColor(extractY,cv2.COLOR_RGB2GRAY)
+                    ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
+                    contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    contours2 = list(filter(lambda x: cv2.contourArea(x) >= 80, contours))
+                    target_idx = 0
+                    # 輪郭に外接する長方形を取得する。
+
+                    if len(contours2) == 0: #黄色がない
+                        idx = 5
+                        #print('chips')
+                    else:
+                        x2, y2, width2, height2 = cv2.boundingRect(contours2[target_idx])
+                        if height2*width2/area < 0.2:
+                            idx = 5
+                            #print('chips')
+                        else:
+                            if width/height >1.5:
+                                idx = 3
+                                #print('banana')
+                            else:
+                                idx = 7
+                                #print('yellow block')
+
+                #yellow_block
+
+                if idx == 7:
+                    #黄色抽出
+                    extractY = cv2.bitwise_and(result, result, mask=maskY)
+                    gray = cv2.cvtColor(extractY,cv2.COLOR_RGB2GRAY)
+                    ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
+
+                    # 輪郭を抽出する。
+                    contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    contours2 = list(filter(lambda x: cv2.contourArea(x) >= 80, contours))
+                    target_idx = 0
+                    # 輪郭に外接する長方形を取得する。
+                    if len(contours2) == 0: #黄色がない
+                        idx = 6
+                        #print('rubiks')
+                    else:
+                        x2, y2, width2, height2 = cv2.boundingRect(contours2[target_idx])
+                        if height2*width2/area < 0.6:
+                            idx = 6
+                            #print('rubiks')
+                        else:
+                            if width/height >1.5:
+                                idx = 3
+                                #print('banana')
+                            else:
+                                idx = 7
+                                #print('yellow block')
+
+
+
+                self.counter[idx] += 1
+
+                print("Label probs" + str(probs))
+                rint("a strawberry" + str(self.counter[0]) + "\n a sports ball"+ str(self.counter[1]) + "\n an apple"+ str(self.counter[2])+\
+                "\n a banana"+ str(self.counter[3])+"\n a toy plane"+ str(self.counter[4])+"\n a chips can"+ str(self.counter[5])+"\n a rubiks cube"+\
+                str(self.counter[6])+"\n a yellow wood block"+ str(self.counter[7]))
+
                 
 
                 # crop_image_list.append(result)
