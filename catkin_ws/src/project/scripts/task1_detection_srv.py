@@ -37,6 +37,10 @@ import copy
 import torch
 import clip
 import PIL
+from std_msgs.msg import Float64MultiArray
+from project.srv import DetectionTrigger2
+from project.srv import DetectionTrigger2Response
+import time
 
 class DetectionDistance:
     def __init__(self):
@@ -57,6 +61,10 @@ class DetectionDistance:
 
         # Subscriber
         rgb_sub = rospy.Subscriber('/camera/color/image_raw', Image, self.callback_rgb)
+
+        #service
+
+        self.detection_probs = rospy.Service('/clip/detection_trigger', DetectionTrigger2, self.process)
 
 
         self.bridge = CvBridge()
@@ -90,7 +98,7 @@ class DetectionDistance:
         self.rgb_image = cv_array
 
 
-    def process(self):
+    def process(self, req):
         # path = "/root/roomba_hack/catkin_ws/src/three-dimensions_tutorial/yolov3/"
 
         # # load category
@@ -99,8 +107,13 @@ class DetectionDistance:
 
         # # prepare model
         # model = models.load_model(path+"config/yolov3.cfg", path+"weights/yolov3.weights")
+        print( type(req.BeforeCounter.data))
+        self.counter = list(req.BeforeCounter.data)
+        print(self.counter)
 
-        while not rospy.is_shutdown():
+        res = DetectionTrigger2Response()
+        start = rospy.Time.now()
+        while (rospy.Time.now().secs - start.secs) < 3.5:
             if self.rgb_image is None:
                 continue
 
@@ -366,6 +379,7 @@ class DetectionDistance:
 
                 self.counter[idx] += 1
 
+
                 print("Label probs" + str(probs))
                 print("a strawberry" + str(self.counter[0]) + "\n a sports ball"+ str(self.counter[1]) + "\n an apple"+ str(self.counter[2])+\
                 "\n a banana"+ str(self.counter[3])+"\n a toy plane"+ str(self.counter[4])+"\n a chips can"+ str(self.counter[5])+"\n a rubiks cube"+\
@@ -408,11 +422,16 @@ class DetectionDistance:
             # self.detection_result_pub.publish(detection_result)
             # self.depth_mask_pub.publish(mask_result)
             # self.cam_info_pub.publish(tmp_caminfo)
+        roslist = Float64MultiArray()
+        roslist.data = self.counter
+        res.AfterCounter = roslist
+        return res
 
 if __name__ == '__main__':
     dd = DetectionDistance()
-    try:
-        dd.process()
-    except rospy.ROSInitException:
-        pass
+    rospy.spin()
+    # try:
+    #     dd.process()
+    # except rospy.ROSInitException:
+    #     pass
 

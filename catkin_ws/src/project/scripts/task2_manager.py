@@ -15,7 +15,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Quaternion
-
+from PIL import Image
 
 class SimpleController:
     def __init__(self):
@@ -182,7 +182,7 @@ if __name__=='__main__':
 
     estimete_x_min = 0.3
     estimete_x_max = 1.0
-    estimete_x = 1.0
+    estimete_x = 1.2
     print(res.x)
 
     if (res.x<estimete_x_min) or (estimete_x_max<res.x):

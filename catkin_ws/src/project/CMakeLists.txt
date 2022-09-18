@@ -62,6 +62,7 @@ add_service_files(
   WavingLeftRight.srv
   tmp.srv
   GetGoalPoint.srv
+  DetectionTrigger2.srv
 )
 
 ## Generate actions in the 'action' folder

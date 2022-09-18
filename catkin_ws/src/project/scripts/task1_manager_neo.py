@@ -7,8 +7,6 @@ import tf
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from std_msgs.msg import String
-from project.srv import WavingLeftRight
-from project.srv import GetGoalPoint#GetCoordinate
 
 import tf2_ros
 import actionlib
@@ -18,13 +16,15 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Quaternion
 import time
 from std_srvs.srv import Empty
+from project.srv import DetectionTrigger2
+from std_msgs.msg import Float64MultiArray, MultiArrayLayout
 
 class SimpleController:
     def __init__(self):
         #rospy.init_node('simple_controller', anonymous=True)
 
         # Publisher
-        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self.cmd_vel_pub = rospy.Publisher('/planner/cmd_vel', Twist, queue_size=10)
 
 
         # Subscriber
@@ -109,13 +109,13 @@ class ActionGoal:
         result = self.action_client.wait_for_result(rospy.Duration(duration))
         return result
 def clear_map():
-    rospy.wait_for_service('name')
-    clear_srv = rospy.ServiceProxy('name', Empty)
-    clear_res = clear_srv() 
+    rospy.wait_for_service('/move_base/clear_costmaps')
+    clear_srv = rospy.ServiceProxy('/move_base/clear_costmaps', Empty)
+    clear_res = clear_srv()
 
 def add_map():
     rospy.wait_for_service('/add_map')
-    add_srv = rospy.ServiceProxy('/add_map, Empty)
+    add_srv = rospy.ServiceProxy('/add_map', Empty)
     add_res = add_srv()
 
 if __name__=='__main__':
@@ -138,9 +138,25 @@ if __name__=='__main__':
     rospy.sleep(1)
 
     simple_controller.turn_left(30)
-    rospy.sleep(3)
+
+    print("start")
+    detection = rospy.ServiceProxy('/clip/detection_trigger', DetectionTrigger2)
+    #detection = rospy.ServiceProxy('/clip/detection_trigger', Empty)
+    rospy.wait_for_service('/clip/detection_trigger')
+    roslist = Float64MultiArray()
+    roslist.data = [0,1,0,0,2,0,4,0]
+    roslist.layout = MultiArrayLayout()
+    req = DetectionTrigger2()
+    req.BeforeCounter = roslist
+    #detection.BeforeCounter = roslist
+
+    # print(list(detection.BeforeCounter.data))
+    det_res = detection(req)
+    #rospy.sleep(3)
     simple_controller.turn_right(30)
-    rospy.sleep(3)
+    #detection.BeforeCounter.data = det_res.AfterCounter.data
+    det_res = detection()
+    #rospy.sleep(3)
     #clear
     clear_map()
     #add
@@ -176,19 +192,27 @@ if __name__=='__main__':
             if res1_2:
                 break
             cnt += 1
-    
+
     simple_controller.turn_left(30)
-    rospy.sleep(3)
+    detection.BeforeCounter = det_res.AfterCounter
+    det_res = detection()
+    #rospy.sleep(3)
     simple_controller.turn_left(30)
-    rospy.sleep(3)
+    detection.BeforeCounter = det_res.AfterCounter
+    det_res = detection()
+    #rospy.sleep(3)
     simple_controller.turn_right(90)
-    rospy.sleep(3)
+    detection.BeforeCounter = det_res.AfterCounter
+    det_res = detection()
+    #rospy.sleep(3)
     simple_controller.turn_left(30)
-    rospy.sleep(3)
+    detection.BeforeCounter = det_res.AfterCounter
+    det_res = detection()
+    #rospy.sleep(3)
 
     #clear
     clear_map()
-    #add 
+    #add
     add_map()
 
     ac.set_goal(3.5, 2.2, 0.0)
@@ -214,17 +238,19 @@ if __name__=='__main__':
         clear_map()
         cnt = 0
         for i in range(2):
-            res1_2 = ac.send_action()
+            res2_2 = ac.send_action()
             simple_controller.stop()
             print('res2_2 : ' + str(res2_2))
             action_client.cancel_all_goals()
             if res2_2:
                 break
             cnt += 1
-    
-    simple_controller.turn_left(120)
-    rospy.sleep(3)
-    simple_controller.turn_right(120)
+
+    simple_controller.turn_left(140)
+    detection.BeforeCounter = det_res.AfterCounter
+    det_res = detection()
+    #rospy.sleep(3)
+    simple_controller.turn_right(140)
 
     #clear
     clear_map()
@@ -238,15 +264,15 @@ if __name__=='__main__':
         if res3:
             break
         cnt += 1
-    
 
 
 
-    
 
-        
 
-    
+
+
+
+
 
     '''
     simple_controller.stop()

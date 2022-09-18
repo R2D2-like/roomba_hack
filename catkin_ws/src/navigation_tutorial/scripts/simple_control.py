@@ -14,7 +14,7 @@ def time_control(pub, velocity, yawrate, time):
 
 def simple_controller():
     rospy.init_node('simple_controller', anonymous=True)
-    pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+    pub = rospy.Publisher('/planner/cmd_vel', Twist, queue_size=10)
 
     time_control(pub,  0.0,  0.0, 0.5)
     time_control(pub,  0.3,  0.0, 2.0)
