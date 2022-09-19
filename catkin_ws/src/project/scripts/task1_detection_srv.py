@@ -126,9 +126,9 @@ class DetectionDistance:
         #print( type(req.BeforeCounter.data))
         #self.counter = list(req.BeforeCounter.data)
         #print(self.counter)
-        
- 
-       
+
+
+
         start = rospy.Time.now()
         while (rospy.Time.now().secs - start.secs) < 3.5:
             if self.rgb_image is None:
@@ -145,7 +145,7 @@ class DetectionDistance:
 
             # inference
             tmp_image_yolo = copy.copy(self.rgb_image)
-            boxes = detect.detect_image(self.model, tmp_image_yolo)
+            boxes = detect.detect_image(self.model_yolo, tmp_image_yolo)
             # [[x1, y1, x2, y2, confidence, class]]
 
             # plot bouding box
@@ -154,13 +154,13 @@ class DetectionDistance:
                 cls_pred = int(box[5])
                 tmp_image_yolo = cv2.rectangle(tmp_image_yolo, (x1, y1), (x2, y2), (0, 255, 0), 3)
                 tmp_image_yolo = cv2.putText(tmp_image_yolo, self.category[cls_pred], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
-                
-                if self.category[cls_pred] in ['sports ball''apple', 'aeroplane', 'banana']:
+
+                if self.category[cls_pred] in ['sports ball','apple', 'aeroplane', 'banana']:
                     self.counter_yolo[self.category[cls_pred]] += 1
             print ('yolo : ' + str(self.counter_yolo))
 
 
-            
+
             # publish image
             tmp_image_yolo = cv2.cvtColor(tmp_image_yolo, cv2.COLOR_RGB2BGR)
             detection_result_yolo = self.bridge.cv2_to_imgmsg(tmp_image_yolo, "bgr8")
@@ -236,7 +236,12 @@ class DetectionDistance:
 
                 idx=np.argmax(probs)
                 area = height*width
-
+                self.counter[idx] += 1
+                print("Label probs" + str(probs))
+                print("a strawberry" + str(self.counter[0]) + "\n a sports ball"+ str(self.counter[1]) + "\n an apple"+ str(self.counter[2])+\
+                "\n a banana"+ str(self.counter[3])+"\n a toy plane"+ str(self.counter[4])+"\n a chips can"+ str(self.counter[5])+"\n a rubiks cube"+\
+                str(self.counter[6])+"\n a yellow wood block"+ str(self.counter[7]))
+                '''
 
                 #画像処理による修正
 
@@ -385,45 +390,51 @@ class DetectionDistance:
                             else:
                                 idx = 7
                                 #print('yellow block')
-
+                '''
                 #yellow_block
 
                 if idx == 7:
                     #黄色抽出
-                    extractY = cv2.bitwise_and(result, result, mask=maskY)
-                    gray = cv2.cvtColor(extractY,cv2.COLOR_RGB2GRAY)
-                    ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
+                    probs = list(probs)
+                    if probs[0][1] > 0.1:
+                            idx = 1
+                            #print('strawberry')
+                    else:
+
+
+                        extractY = cv2.bitwise_and(result, result, mask=maskY)
+                        gray = cv2.cvtColor(extractY,cv2.COLOR_RGB2GRAY)
+                        ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
 
                     # 輪郭を抽出する。
-                    contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                    contours2 = list(filter(lambda x: cv2.contourArea(x) >= 80, contours))
-                    target_idx = 0
+                        contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                        contours2 = list(filter(lambda x: cv2.contourArea(x) >= 80, contours))
+                        target_idx = 0
                     # 輪郭に外接する長方形を取得する。
-                    if len(contours2) == 0: #黄色がない
-                        idx = 6
-                        #print('rubiks')
-                    else:
-                        x2, y2, width2, height2 = cv2.boundingRect(contours2[target_idx])
-                        if height2*width2/area < 0.6:
+                        if len(contours2) == 0: #黄色がない
                             idx = 6
                             #print('rubiks')
                         else:
-                            if width/height >1.5:
-                                idx = 3
-                                #print('banana')
+                            x2, y2, width2, height2 = cv2.boundingRect(contours2[target_idx])
+                            if height2*width2/area < 0.6:
+                                idx = 6
+                                print('rubiks')
                             else:
-                                idx = 7
-                                #print('yellow block')
+                                if width/height >1.5:
+                                    idx = 3
+                                    #print('banana')
+                                else:
+                                    idx = 7
+                                    #print('yellow block')
 
 
+                # self.counter[idx] += 1
 
-                self.counter[idx] += 1
 
-
-                print("Label probs" + str(probs))
-                print("a strawberry" + str(self.counter[0]) + "\n a sports ball"+ str(self.counter[1]) + "\n an apple"+ str(self.counter[2])+\
-                "\n a banana"+ str(self.counter[3])+"\n a toy plane"+ str(self.counter[4])+"\n a chips can"+ str(self.counter[5])+"\n a rubiks cube"+\
-                str(self.counter[6])+"\n a yellow wood block"+ str(self.counter[7]))
+                # print("Label probs" + str(probs))
+                # print("a strawberry" + str(self.counter[0]) + "\n a sports ball"+ str(self.counter[1]) + "\n an apple"+ str(self.counter[2])+\
+                # "\n a banana"+ str(self.counter[3])+"\n a toy plane"+ str(self.counter[4])+"\n a chips can"+ str(self.counter[5])+"\n a rubiks cube"+\
+                # str(self.counter[6])+"\n a yellow wood block"+ str(self.counter[7]))
 
 
 
@@ -462,7 +473,7 @@ class DetectionDistance:
             # self.detection_result_pub.publish(detection_result)
             # self.depth_mask_pub.publish(mask_result)
             # self.cam_info_pub.publish(tmp_caminfo)
-        
+
         return EmptyResponse()
 
 if __name__ == '__main__':

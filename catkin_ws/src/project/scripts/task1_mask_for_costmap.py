@@ -54,6 +54,7 @@ class DetectionDistance:
         self.hsv_max_G = np.array([90,255,255])
 
     def callback_rgbd(self, data1, data2, data3):
+        print('callback')
         cv_array = self.bridge.imgmsg_to_cv2(data1, 'bgr8')
         self.bgr_image = cv_array
         self.hsv_image = cv2.cvtColor(cv_array, cv2.COLOR_BGR2HSV) # 画像をHSVに変換

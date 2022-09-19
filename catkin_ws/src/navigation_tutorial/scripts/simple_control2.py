@@ -5,11 +5,12 @@ import rospy
 import tf
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+import tf2_ros
 
 class SimpleController:
     def __init__(self):
         rospy.init_node('simple_controller', anonymous=True)
-        
+
         # Publisher
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
@@ -69,11 +70,64 @@ class SimpleController:
                 (quaternion.x, quaternion.y, quaternion.z, quaternion.w))
         return e[2]
 
+    def tf_spin_forward(self):
+        vel = Twist()
+        tfBuffer = tf2_ros.Buffer()
+        listener = tf2_ros.TransformListener(tfBuffer)
+        flag = True
+        while flag:
+            try:
+                t = tfBuffer.lookup_transform('map','base_footprint',rospy.Time())
+                if abs(t.transform.rotation.w)<0.998:
+                    vel.linear.x = 0.0
+                    vel.angular.z = -0.5
+                    self.cmd_vel_pub.publish(vel)
+                    #rospy.sleep(0.1)
+                    print('a')
+
+                else:
+                    self.stop()
+                    flag = False
+                    print('bb')
+                    break
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                print(e)
+                rospy.sleep(0.1)
+                continue
+    def tf_spin_backward(self):
+        vel = Twist()
+        tfBuffer = tf2_ros.Buffer()
+        listener = tf2_ros.TransformListener(tfBuffer)
+        flag = True
+        while flag:
+            try:
+                t = tfBuffer.lookup_transform('map','base_footprint',rospy.Time())
+                if abs(t.transform.rotation.w)>0.002:
+                    vel.linear.x = 0.0
+                    vel.angular.z = -0.5
+                    self.cmd_vel_pub.publish(vel)
+                    #rospy.sleep(0.1)
+                    print('a')
+
+                else:
+                    self.stop()
+                    flag = False
+                    print('bb')
+                    break
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                print(e)
+                rospy.sleep(0.1)
+                continue
+
+
+        self.stop()
+
 if __name__=='__main__':
     simple_controller = SimpleController()
     try:
-        simple_controller.go_straight(1.0)
-        simple_controller.turn_left(90)
-        simple_controller.turn_right(90)
+        simple_controller.tf_spin_forward()
+        # simple_controller.go_straight(1.0)
+        # simple_controller.turn_left(90)
+        # simple_controller.turn_right(90)
     except rospy.ROSInitException:
         pass

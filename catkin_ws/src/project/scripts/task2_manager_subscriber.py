@@ -161,8 +161,8 @@ def callback(data):
     '''
 
     estimete_x_min = 0.3
-    estimete_x_max = 1.0
-    estimete_x = 1.0
+    estimete_x_max = 1.1
+    estimete_x = 1.1
     print(res.x)
 
     if (res.x<estimete_x_min) or (estimete_x_max<res.x):
@@ -171,9 +171,11 @@ def callback(data):
             if left_or_right == 'left':
                 print("goal(" + str(x) + "," + str(y-0.2) + ")")
                 ac.set_goal(x, y-0.2, 0.0)#if left y-0.2, if right y+0.2
+                simple_controller.go_straight(0.2)
             else:
                 print("goal(" + str(x) + "," + str(y+0.2) + ")")
                 ac.set_goal(x, y, 0.0)#if left y-0.2, if right y+0.2
+                simple_controller.go_straight(0.2)
             res = ac.send_action()
             simple_controller.stop()
     else:
@@ -181,10 +183,16 @@ def callback(data):
             y = res.y
             if left_or_right == 'left':
                 print("goal(" + str(x+0.35) + "," + str(y-0.2) + ")")
-                ac.set_goal(x+0.25, y-0.2, 0.0)#if left y-0.2, if right y+0.2
+                if y < 4.3:
+                    y = 4.3
+                ac.set_goal(1.1, y-0.2, 0.0)#if left y-0.2, if right y+0.2
+                simple_controller.go_straight(1.1-(x+0.25)+0.2)
             else:
+                if 5.6 < y:
+                    y = 5.6
                 print("goal(" + str(x+0.35) + "," + str(y+0.2) + ")")
-                ac.set_goal(x+0.25, y, 0.0)#if left y-0.2, if right y+0.2
+                ac.set_goal(1.1, y, 0.0)#if left y-0.2, if right y+0.2
+                simple_controller.go_straight(1.1-(x+0.25)+0.2)
             # print("goal(" + str(x+0.4) + "," + str(y) + ")")
             # ac.set_goal(x+0.35, y-0.2, 0.0)
             res = ac.send_action()

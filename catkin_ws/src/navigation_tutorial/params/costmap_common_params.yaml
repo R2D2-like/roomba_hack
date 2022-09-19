@@ -1,8 +1,8 @@
 #obstacle_range: 0.5
 #raytrace_range: 1.0
 
-robot_radius: 0.20
-inflation_radius: 0.25
+robot_radius: 0.05 #task1 0.20
+inflation_radius: 0.05 #task1  0.25
 
 observation_sources: laser_scan_sensor
 observation_sources: detection_cloud

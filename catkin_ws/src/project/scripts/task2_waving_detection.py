@@ -112,7 +112,7 @@ class WavingDetector:
         rgb_sub = rospy.Subscriber('/camera/color/image_raw', Image, self.rgb_callback)
 
         # publisher
-        self.detection_result_pub = rospy.Publisher('/kp_image', Image, queue_size=1)
+        self.detection_result_pub = rospy.Publisher('/kp_image', Image, queue_size=10)
 
         # service
         self.wave_detection_service = rospy.Service('/wave_detection', WavingLeftRight, self.wave_detection)
@@ -211,7 +211,7 @@ class WavingDetector:
 
         t = rospy.Time.now()
 
-        while rospy.Time.now().secs - t.secs < 30.0:
+        while rospy.Time.now().secs - t.secs < 10:
             rospy.sleep(0.05)
             self.left_or_right_detection()
 
