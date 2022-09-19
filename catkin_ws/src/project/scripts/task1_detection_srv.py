@@ -2,6 +2,7 @@
 
 from curses import resetty
 from os import TMP_MAX
+#from queue import Empty
 from re import X
 from subprocess import call
 import rospy
@@ -38,16 +39,19 @@ import torch
 import clip
 import PIL
 from std_msgs.msg import Float64MultiArray
-from project.srv import DetectionTrigger2
-from project.srv import DetectionTrigger2Response
+#from project.srv import DetectionTrigger2
+#from project.srv import DetectionTrigger2Response
 import time
+from std_srvs.srv import Empty
+from std_srvs.srv import EmptyResponse
 
 class DetectionDistance:
     def __init__(self):
         rospy.init_node('task1_clip_unified', anonymous=True)
 
         # Publisher
-        self.detection_result_pub = rospy.Publisher('/clip/detection_result', Image, queue_size=10)
+        self.detection_result_pub = rospy.Publisher('/detection_result/clip', Image, queue_size=10)
+        self.detection_result_pub_yolo = rospy.Publisher('/detection_result/yolo', Image, queue_size=10)
         #self.depth_mask_pub = rospy.Publisher('/task1/masked_depth/image', Image, queue_size=10)
         #self.cam_info_pub = rospy.Publisher('/task1/masked_depth/camera_info', CameraInfo, queue_size=10)
         self.detect_result=[]
@@ -57,6 +61,7 @@ class DetectionDistance:
         self.device='cuda'
         self.model, self.preprocess = clip.load("ViT-L/14@336px", device='cuda', jit=False)
         self.counter = [0,0,0,0,0,0,0,0]
+        self.counter_yolo = {'sports ball':0, 'apple':0, 'aeroplane':0, 'banana':0}
         self.text=clip.tokenize(self.texts2).to(self.device)
 
         # Subscriber
@@ -64,7 +69,7 @@ class DetectionDistance:
 
         #service
 
-        self.detection_probs = rospy.Service('/clip/detection_trigger', DetectionTrigger2, self.process)
+        self.detection_probs = rospy.Service('/clip/detection_trigger', Empty, self.process)
 
 
         self.bridge = CvBridge()
@@ -90,6 +95,17 @@ class DetectionDistance:
         self.hsv_min_G = np.array([30, 64, 0])
         self.hsv_max_G = np.array([90,255,255])
 
+
+        #yolo
+        path = "/root/roomba_hack/catkin_ws/src/three-dimensions_tutorial/yolov3/"
+
+        # load category
+        with open(path+"data/coco.names") as f:
+            self.category = f.read().splitlines()
+
+        # prepare model
+        self.model_yolo = models.load_model(path+"config/yolov3.cfg", path+"weights/yolov3.weights")
+
     def callback_rgb(self, data):
         cv_array = self.bridge.imgmsg_to_cv2(data, 'bgr8')
         self.bgr_image = cv_array
@@ -107,11 +123,12 @@ class DetectionDistance:
 
         # # prepare model
         # model = models.load_model(path+"config/yolov3.cfg", path+"weights/yolov3.weights")
-        print( type(req.BeforeCounter.data))
-        self.counter = list(req.BeforeCounter.data)
-        print(self.counter)
-
-        res = DetectionTrigger2Response()
+        #print( type(req.BeforeCounter.data))
+        #self.counter = list(req.BeforeCounter.data)
+        #print(self.counter)
+        
+ 
+       
         start = rospy.Time.now()
         while (rospy.Time.now().secs - start.secs) < 3.5:
             if self.rgb_image is None:
@@ -125,6 +142,29 @@ class DetectionDistance:
             #tmp_depth = copy.copy(self.depth_image)
             # tmp_caminfo = copy.copy(self.cam_info)
             # print(tmp_caminfo.header)
+
+            # inference
+            tmp_image_yolo = copy.copy(self.rgb_image)
+            boxes = detect.detect_image(self.model, tmp_image_yolo)
+            # [[x1, y1, x2, y2, confidence, class]]
+
+            # plot bouding box
+            for box in boxes:
+                x1, y1, x2, y2 = map(int, box[:4])
+                cls_pred = int(box[5])
+                tmp_image_yolo = cv2.rectangle(tmp_image_yolo, (x1, y1), (x2, y2), (0, 255, 0), 3)
+                tmp_image_yolo = cv2.putText(tmp_image_yolo, self.category[cls_pred], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+                
+                if self.category[cls_pred] in ['sports ball''apple', 'aeroplane', 'banana']:
+                    self.counter_yolo[self.category[cls_pred]] += 1
+            print ('yolo : ' + str(self.counter_yolo))
+
+
+            
+            # publish image
+            tmp_image_yolo = cv2.cvtColor(tmp_image_yolo, cv2.COLOR_RGB2BGR)
+            detection_result_yolo = self.bridge.cv2_to_imgmsg(tmp_image_yolo, "bgr8")
+            self.detection_result_pub_yolo.publish(detection_result_yolo)
 
 
             rec = np.zeros_like(tmp_bgr_image)
@@ -422,10 +462,8 @@ class DetectionDistance:
             # self.detection_result_pub.publish(detection_result)
             # self.depth_mask_pub.publish(mask_result)
             # self.cam_info_pub.publish(tmp_caminfo)
-        roslist = Float64MultiArray()
-        roslist.data = self.counter
-        res.AfterCounter = roslist
-        return res
+        
+        return EmptyResponse()
 
 if __name__ == '__main__':
     dd = DetectionDistance()
