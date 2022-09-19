@@ -16,7 +16,7 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Quaternion
 import time
 from std_srvs.srv import Empty
-from project.srv import DetectionTrigger2
+#from project.srv import DetectionTrigger2
 from std_msgs.msg import Float64MultiArray, MultiArrayLayout
 
 class SimpleController:
@@ -140,18 +140,19 @@ if __name__=='__main__':
     simple_controller.turn_left(30)
 
     print("start")
-    detection = rospy.ServiceProxy('/clip/detection_trigger', DetectionTrigger2)
-    #detection = rospy.ServiceProxy('/clip/detection_trigger', Empty)
+    #detection = rospy.ServiceProxy('/clip/detection_trigger', DetectionTrigger2)
+    detection = rospy.ServiceProxy('/clip/detection_trigger', Empty)
     rospy.wait_for_service('/clip/detection_trigger')
-    roslist = Float64MultiArray()
-    roslist.data = [0,1,0,0,2,0,4,0]
-    roslist.layout = MultiArrayLayout()
-    req = DetectionTrigger2()
-    req.BeforeCounter = roslist
+    #roslist = Float64MultiArray()
+    #roslist.data = [0,1,0,0,2,0,4,0]
+    #roslist.layout = MultiArrayLayout()
+    #req = DetectionTrigger2()
+    #req.BeforeCounter = roslist
     #detection.BeforeCounter = roslist
+    
 
     # print(list(detection.BeforeCounter.data))
-    det_res = detection(req)
+    det_res = detection()
     #rospy.sleep(3)
     simple_controller.turn_right(30)
     #detection.BeforeCounter.data = det_res.AfterCounter.data
@@ -194,19 +195,15 @@ if __name__=='__main__':
             cnt += 1
 
     simple_controller.turn_left(30)
-    detection.BeforeCounter = det_res.AfterCounter
     det_res = detection()
     #rospy.sleep(3)
     simple_controller.turn_left(30)
-    detection.BeforeCounter = det_res.AfterCounter
     det_res = detection()
     #rospy.sleep(3)
     simple_controller.turn_right(90)
-    detection.BeforeCounter = det_res.AfterCounter
     det_res = detection()
     #rospy.sleep(3)
     simple_controller.turn_left(30)
-    detection.BeforeCounter = det_res.AfterCounter
     det_res = detection()
     #rospy.sleep(3)
 
