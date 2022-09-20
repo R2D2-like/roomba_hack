@@ -119,22 +119,26 @@ def callback(data):
     mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
     ac = ActionGoal()
     #reqest waving person result(step2)
+    rospy.wait_for_service('/wave_detection')
     waving_person = rospy.ServiceProxy('/wave_detection', WavingLeftRight)
     res  = waving_person()
+    print(res)
     rospy.sleep(0.5)
     #induce masking ankle(step3)
-    mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
+    #mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
     #while not rospy.is_shutdown():
 
     print(res.left_or_right)
     left_or_right = res.left_or_right
     waving_person_str = String()
     waving_person_str.data = res.left_or_right
+    print(waving_person_str.data)
     mask_ankle_trigger_pub.publish(waving_person_str)
     rospy.sleep(0.05)
 
 
     #reqest goal coordinate(step4)
+    rospy.wait_for_service('/get_coordinate')
     get_coordinate = rospy.ServiceProxy('/get_coordinate', GetGoalPoint)
     res = get_coordinate()
 
@@ -171,11 +175,11 @@ def callback(data):
             if left_or_right == 'left':
                 print("goal(" + str(x) + "," + str(y-0.2) + ")")
                 ac.set_goal(x, y-0.2, 0.0)#if left y-0.2, if right y+0.2
-                simple_controller.go_straight(0.2)
+                simple_controller.go_straight(0.35)
             else:
                 print("goal(" + str(x) + "," + str(y+0.2) + ")")
                 ac.set_goal(x, y, 0.0)#if left y-0.2, if right y+0.2
-                simple_controller.go_straight(0.2)
+                simple_controller.go_straight(0.35)
             res = ac.send_action()
             simple_controller.stop()
     else:
@@ -186,13 +190,15 @@ def callback(data):
                 if y < 4.3:
                     y = 4.3
                 ac.set_goal(1.1, y-0.2, 0.0)#if left y-0.2, if right y+0.2
-                simple_controller.go_straight(1.1-(x+0.25)+0.2)
+                simple_controller.go_straight(1.1-(x+0.25)+0.35)
             else:
                 if 5.6 < y:
                     y = 5.6
+                if 4.4> y:
+                    y = 4.4
                 print("goal(" + str(x+0.35) + "," + str(y+0.2) + ")")
-                ac.set_goal(1.1, y, 0.0)#if left y-0.2, if right y+0.2
-                simple_controller.go_straight(1.1-(x+0.25)+0.2)
+                ac.set_goal(1.1, y+0.2, 0.0)#if left y-0.2, if right y+0.2
+                simple_controller.go_straight(1.1-(x+0.25)+0.35)
             # print("goal(" + str(x+0.4) + "," + str(y) + ")")
             # ac.set_goal(x+0.35, y-0.2, 0.0)
             res = ac.send_action()

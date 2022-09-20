@@ -55,8 +55,8 @@ class DetectionDistance:
         #self.depth_mask_pub = rospy.Publisher('/task1/masked_depth/image', Image, queue_size=10)
         #self.cam_info_pub = rospy.Publisher('/task1/masked_depth/camera_info', CameraInfo, queue_size=10)
         self.detect_result=[]
-        self.texts=["a strawberry","a sports ball","an apple","a banana","a toy plane","a chips can","a rubiks cube","a yellow wood block"]
-        self.texts2=["a photo of a strawberry, a type of fruit","a photo of a blue soccer ball","a photo of an red apple, a type of fruit","a photo of a yellow banana, type of fruit","a phot of a toy plane","a photo of a chips can ","a photo of a rubiks cube","a photo of a yellow cube"]
+        self.texts=["a strawberry","a sports ball","an apple","a banana","a toy plane","a chips can","a rubiks cube"]#,"a yellow wood block"]
+        self.texts2=["a photo of a strawberry, a type of fruit","a photo of a blue soccer ball","a photo of an red apple, a type of fruit","a photo of a yellow banana, type of fruit","a phot of a toy plane","a photo of a chips can ","a photo of a rubiks cube"] #,"a photo of a yellow cube"]
 
         self.device='cuda'
         self.model, self.preprocess = clip.load("ViT-L/14@336px", device='cuda', jit=False)
@@ -396,8 +396,8 @@ class DetectionDistance:
                 if idx == 7:
                     #黄色抽出
                     probs = list(probs)
-                    if probs[0][1] > 0.1:
-                            idx = 1
+                    if probs[0][0] > 0.1:
+                            idx = 0
                             #print('strawberry')
                     else:
 
@@ -407,8 +407,8 @@ class DetectionDistance:
                         ret, bin_img = cv2.threshold(gray, 20, 255, cv2.THRESH_BINARY)
 
                     # 輪郭を抽出する。
-                        contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                        contours2 = list(filter(lambda x: cv2.contourArea(x) >= 80, contours))
+                        contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+                        contours2 = list(filter(lambda x: cv2.contourArea(x) >= 60, contours))
                         target_idx = 0
                     # 輪郭に外接する長方形を取得する。
                         if len(contours2) == 0: #黄色がない
@@ -416,7 +416,7 @@ class DetectionDistance:
                             #print('rubiks')
                         else:
                             x2, y2, width2, height2 = cv2.boundingRect(contours2[target_idx])
-                            if height2*width2/area < 0.6:
+                            if height2*width2/area < 0.75:
                                 idx = 6
                                 print('rubiks')
                             else:
@@ -425,7 +425,7 @@ class DetectionDistance:
                                     #print('banana')
                                 else:
                                     idx = 7
-                                    #print('yellow block')
+                                    print('yellow block')
 
 
                 # self.counter[idx] += 1

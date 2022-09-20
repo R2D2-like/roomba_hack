@@ -57,3 +57,6 @@ CATKIN_IGNORE
 
 map.pgm
 map.yaml
+
+.vscode/
+catkin_ws/.vscode/

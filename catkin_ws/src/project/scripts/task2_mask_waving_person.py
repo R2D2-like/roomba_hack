@@ -119,8 +119,8 @@ class DetectWavingPersonAnkle:
 
         # Publisher
         self.detection_result_pub = rospy.Publisher('/center_point/detection_result', Image, queue_size=10)
-        self.depth_mask_pub = rospy.Publisher('/depth_mask', Image, queue_size=10)
-        self.cam_info_pub = rospy.Publisher('/camerainfo/depth_mask', CameraInfo, queue_size=10)
+        self.depth_mask_pub = rospy.Publisher('/task2/waving_person/depth_mask', Image, queue_size=10)
+        self.cam_info_pub = rospy.Publisher('/task2/waving_person/camera_info', CameraInfo, queue_size=10)
 
 
         self.ankle_mask_result_pub = rospy.Publisher('/kp_image/ankle', Image, queue_size=10)
@@ -161,7 +161,8 @@ class DetectWavingPersonAnkle:
         print('@extract_ancle_point')
 
         if len(dets) != 2:
-            return
+            print('not two')
+            return [0,0]
 
         #sort biggest->smallset (step3)
         for det in dets:
@@ -185,7 +186,7 @@ class DetectWavingPersonAnkle:
 
 
 
-        hand_up_or_down = {"left_person":{"left_ankle":None}, "right_person":{"right_ankle":None}}
+        hand_up_or_down = {"left_person":{"left_ankle":0}, "right_person":{"right_ankle":0}}
 
         if LorR == "left":
             for idx, k in enumerate(people['left_person']['key_points']):
@@ -193,6 +194,7 @@ class DetectWavingPersonAnkle:
                     hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]] = k[:2]
                     x=int(hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]][0])
                     y=int(hand_up_or_down['left_person'][KeypointRCNN.PART_STR[idx]][1])
+                    print(x,y)
                     tmp_rgb_image = cv2.circle(tmp_rgb_image, (x, y), 15, (0, 255, 0), thickness=-1)
         else:
             for idx, k in enumerate(people['right_person']['key_points']):
@@ -200,6 +202,7 @@ class DetectWavingPersonAnkle:
                     hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]] = k[:2]
                     x=int(hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]][0])
                     y=int(hand_up_or_down['right_person'][KeypointRCNN.PART_STR[idx]][1])
+                    print(x,y)
                     tmp_rgb_image = cv2.circle(tmp_rgb_image, (x, y), 15, (255, 0, 0), thickness=-1)
 
         # tmp_rgb_image = cv2.circle(tmp_rgb_image, (int(hand_up_or_down['left_person']['left_elbow'][0]), int(hand_up_or_down['left_person']['left_elbow'][1])), 15, (0, 255, 0), thickness=-1)
@@ -229,12 +232,15 @@ class DetectWavingPersonAnkle:
                 continue
 
             LorR = msg.data
-            print(msg)
+            print(LorR)
             tmp_depth = copy.copy(self.depth_image)
             tmp_caminfo = copy.copy(self.cam_info)
             xy = self.extract_ancle_point(LorR)
             x = xy[0]
             y = xy[1]
+            if x == 0 and y == 0:
+                print('not found')
+                continue
             print("x : " + str(x) + ", y : " + str(y))
 
             mask = np.zeros_like(tmp_depth)

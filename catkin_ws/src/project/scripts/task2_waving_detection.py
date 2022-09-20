@@ -142,6 +142,7 @@ class WavingDetector:
         dets = self.wave_detector.predict(PIL.Image.fromarray(rgb_img_copy))
 
         if len(dets) != 2:
+            print('not two')
             return
 
         #sort biggest->smallset (step3)
@@ -211,7 +212,7 @@ class WavingDetector:
 
         t = rospy.Time.now()
 
-        while rospy.Time.now().secs - t.secs < 10:
+        while rospy.Time.now().secs - t.secs < 15:
             rospy.sleep(0.05)
             self.left_or_right_detection()
 
@@ -228,6 +229,7 @@ class WavingDetector:
             r = self.right_cnt
             rospy.loginfo("left" + str(l) + "right" + str(r))
             rospy.loginfo("right person is waving a hand")
+        print(res)
         return res
 
 

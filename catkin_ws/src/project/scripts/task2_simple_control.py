@@ -49,7 +49,7 @@ class SimpleController:
             rospy.sleep(0.1)
         self.stop()
 
-    def turn_left(self, yaw, yawrate=0.5):
+    def turn_left(self, yaw, yawrate=0.3):
         vel = Twist()
         yaw0 = self.yaw
         while(abs(self.yaw-yaw0)<np.deg2rad(yaw)):
@@ -67,7 +67,7 @@ class SimpleController:
         while flag:
             try:
                 t = tfBuffer.lookup_transform('map','base_footprint',rospy.Time())
-                if abs(t.transform.rotation.w)>0.03:
+                if abs(t.transform.rotation.w)>0.04:
                     vel.linear.x = 0.0
                     vel.angular.z = 0.2
                     self.cmd_vel_pub.publish(vel)

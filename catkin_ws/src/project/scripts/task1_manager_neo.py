@@ -330,7 +330,8 @@ if __name__=='__main__':
         simple_controller.turn_left(30)
         det_res = detection()
         #rospy.sleep(3)
-        simple_controller.turn_right(90)
+        simple_controller.tf_spin_forward()
+        simple_controller.turn_right(30)
         det_res = detection()
         #rospy.sleep(3)
         simple_controller.turn_left(30)
@@ -383,8 +384,10 @@ if __name__=='__main__':
             if t.transform.translation.x < 1.0 :
                 print(t.transform.translation.x)
                 simple_controller.tf_spin_forward()
+                simple_controller.go_straight(0.15,-0.3)
                 simple_controller.turn_left(20)
-                ac.set_goal(3.5, 3.0, 0.0)
+                ac.set_goal(3.5, 3.1, 0.0)
+                print('3')
                 res1 = ac.send_action()
                 simple_controller.stop()
                 print('res2-2 : ' + str(res1))
@@ -399,6 +402,7 @@ if __name__=='__main__':
                             if t.transform.translation.x < 1.0 :
                                 print(t.transform.translation.x)
                                 simple_controller.tf_spin_forward()
+                                simple_controller.go_straight(0.15,-0.3)
                                 simple_controller.turn_right(20)
                                 ac.set_goal(3.5, 1.2, 0.0)
                                 res1 = ac.send_action()
@@ -443,6 +447,8 @@ if __name__=='__main__':
     if not flag:
         #clear
         clear_map()
+        simple_controller.tf_spin_forward()
+        simple_controller.go_straight(0.15,-0.3)
         rospy.wait_for_service('/move_base/clear_costmaps')
         clear_srv = rospy.ServiceProxy('/move_base/clear_costmaps', Empty)
         clear_res = clear_srv()

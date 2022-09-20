@@ -50,5 +50,5 @@ def callback(pc2):
     
 
 rospy.init_node('task2_pc2_xyz')  
-sub = rospy.Subscriber('/camera/depth/points',PointCloud2,callback)                                                                                                                                  
+sub = rospy.Subscriber('/task2/waving_person/camera/depth/points',PointCloud2,callback)                                                                                                                                  
 rospy.spin()
