@@ -212,7 +212,7 @@ class WavingDetector:
 
         t = rospy.Time.now()
 
-        while rospy.Time.now().secs - t.secs < 15:
+        while rospy.Time.now().secs - t.secs < 20:
             rospy.sleep(0.05)
             self.left_or_right_detection()
 

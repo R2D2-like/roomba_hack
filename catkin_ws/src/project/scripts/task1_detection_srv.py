@@ -48,7 +48,8 @@ from std_srvs.srv import EmptyResponse
 class DetectionDistance:
     def __init__(self):
         rospy.init_node('task1_clip_unified', anonymous=True)
-
+        self.CNT=0
+        self.seed=[]
         # Publisher
         self.detection_result_pub = rospy.Publisher('/detection_result/clip', Image, queue_size=10)
         self.detection_result_pub_yolo = rospy.Publisher('/detection_result/yolo', Image, queue_size=10)
@@ -57,6 +58,8 @@ class DetectionDistance:
         self.detect_result=[]
         self.texts=["a strawberry","a sports ball","an apple","a banana","a toy plane","a chips can","a rubiks cube"]#,"a yellow wood block"]
         self.texts2=["a photo of a strawberry, a type of fruit","a photo of a blue soccer ball","a photo of an red apple, a type of fruit","a photo of a yellow banana, type of fruit","a phot of a toy plane","a photo of a chips can ","a photo of a rubiks cube"] #,"a photo of a yellow cube"]
+        self.texts_tmp=["a strawberry","a sports ball","an apple","a banana","a toy plane","a chips can","a rubiks cube","a yellow wood block"]
+
 
         self.device='cuda'
         self.model, self.preprocess = clip.load("ViT-L/14@336px", device='cuda', jit=False)
@@ -357,7 +360,7 @@ class DetectionDistance:
                         probs = list(probs)
                         if probs[0][0] > probs[0][2]:
                             idx = 0
-                            #print('strawberry')
+                                #print('strawberry')
                         else:
                             idx = 2
                             #print('apple')
@@ -474,6 +477,46 @@ class DetectionDistance:
             # self.depth_mask_pub.publish(mask_result)
             # self.cam_info_pub.publish(tmp_caminfo)
 
+
+
+        #ここから最終表示
+
+
+        self.CNT+=1
+        if self.CNT==7:
+            if self.counter_yolo["apple"]!=0:
+                self.seed.append("apple")
+                self.counter[2]=0
+        
+            if self.counter_yolo["banana"]!=0:
+                self.seed.append("banana")
+                self.counter[3]=0
+
+            if self.counter[4]!=0:
+                self.seed.append("toyplane")
+                self.counter[4]=0
+        
+            if self.counter[6]!=0:
+                self.seed.append("rubic cube")
+                self.counter[6]=0
+        
+            if self.counter[3]!=0:
+                self.seed.append("banana")
+                self.counter[3]=0
+        
+            sortedID=sorted(self.counter)
+ 
+            s=len(self.seed)
+            sortedID=sortedID[s-5:]
+            
+
+
+            for i in sortedID:
+                l=self.counter.index(i)
+                self.seed.append(self.texts_tmp[l])        
+        
+
+            print(self.seed)
         return EmptyResponse()
 
 if __name__ == '__main__':

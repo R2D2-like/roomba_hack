@@ -56,7 +56,7 @@ class DetermineGoal:
         y = 0
         cnt = 0
 
-        while cnt < 10:
+        while cnt < 20:
             try:
                 t = tfBuffer.lookup_transform('map','object_frame',rospy.Time())
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:

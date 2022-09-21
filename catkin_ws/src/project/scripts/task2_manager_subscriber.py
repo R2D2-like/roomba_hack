@@ -16,6 +16,10 @@ from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Quaternion
 
+import tf2_ros
+import actionlib
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+
 
 class SimpleController:
     def __init__(self):
@@ -80,6 +84,59 @@ class SimpleController:
                 (quaternion.x, quaternion.y, quaternion.z, quaternion.w))
         return e[2]
 
+    def tf_spin(self):
+        vel = Twist()
+        tfBuffer = tf2_ros.Buffer()
+        listener = tf2_ros.TransformListener(tfBuffer)
+        flag = True
+        while flag:
+            try:
+                t = tfBuffer.lookup_transform('map','base_footprint',rospy.Time())
+                if abs(t.transform.rotation.w)>0.04:
+                    vel.linear.x = 0.0
+                    vel.angular.z = 0.2
+                    self.cmd_vel_pub.publish(vel)
+                    #rospy.sleep(0.1)
+                    #print('a')
+
+                else:
+                    self.stop()
+                    rospy.sleep(1)
+                    flag = False
+                    print('bb')
+                    break
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                print(e)
+                rospy.sleep(0.1)
+                continue
+
+
+    def tf_go(self):
+        vel = Twist()
+        tfBuffer = tf2_ros.Buffer()
+        listener = tf2_ros.TransformListener(tfBuffer)
+        flag = True
+        while flag:
+            try:
+                t = tfBuffer.lookup_transform('map','base_footprint',rospy.Time())
+                if t.transform.translation.x > 1.2 :
+                    vel.linear.x = 0.3
+                    vel.angular.z = 0.0
+                    self.cmd_vel_pub.publish(vel)
+                    #rospy.sleep(0.1)
+                    #print('a')
+                
+                else:
+                    self.stop()
+                    rospy.sleep(1)
+                    flag = False
+                    print('bb')
+                    break
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                print(e)
+                rospy.sleep(0.1)
+                continue
+
 
 
 class ActionGoal:
@@ -115,9 +172,15 @@ def callback(data):
 
 
     simple_controller = SimpleController()
+    tfBuffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(tfBuffer)
+
+    action_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+    action_client.wait_for_server()  # action serverの準備ができるまで待つ
 
     mask_ankle_trigger_pub = rospy.Publisher('/mask/ankle/trigger', String, queue_size=10)
     ac = ActionGoal()
+    action_client.cancel_all_goals()
     #reqest waving person result(step2)
     rospy.wait_for_service('/wave_detection')
     waving_person = rospy.ServiceProxy('/wave_detection', WavingLeftRight)
@@ -166,7 +229,7 @@ def callback(data):
 
     estimete_x_min = 0.3
     estimete_x_max = 1.1
-    estimete_x = 1.1
+    estimete_x = 1.0
     print(res.x)
 
     if (res.x<estimete_x_min) or (estimete_x_max<res.x):
@@ -175,12 +238,16 @@ def callback(data):
             if left_or_right == 'left':
                 print("goal(" + str(x) + "," + str(y-0.2) + ")")
                 ac.set_goal(x, y-0.2, 0.0)#if left y-0.2, if right y+0.2
-                simple_controller.go_straight(0.35)
             else:
                 print("goal(" + str(x) + "," + str(y+0.2) + ")")
                 ac.set_goal(x, y, 0.0)#if left y-0.2, if right y+0.2
-                simple_controller.go_straight(0.35)
+                
             res = ac.send_action()
+            print(res)
+            simple_controller.stop()
+            #simple_controller.tf_go()
+            #simple_controller.stop()
+            simple_controller.go_straight(0.1)
             simple_controller.stop()
     else:
             x = res.x
@@ -190,19 +257,70 @@ def callback(data):
                 if y < 4.3:
                     y = 4.3
                 ac.set_goal(1.1, y-0.2, 0.0)#if left y-0.2, if right y+0.2
-                simple_controller.go_straight(1.1-(x+0.25)+0.35)
+                
+                #simple_controller.go_straight(1.1-(x+0.25)+0.35)
             else:
+                print(y)
                 if 5.6 < y:
                     y = 5.6
-                if 4.4> y:
-                    y = 4.4
+                if 5.2> y:
+                    y = 5.0
                 print("goal(" + str(x+0.35) + "," + str(y+0.2) + ")")
                 ac.set_goal(1.1, y+0.2, 0.0)#if left y-0.2, if right y+0.2
-                simple_controller.go_straight(1.1-(x+0.25)+0.35)
+                #simple_controller.go_straight(1.1-(x+0.25)+0.35)
             # print("goal(" + str(x+0.4) + "," + str(y) + ")")
             # ac.set_goal(x+0.35, y-0.2, 0.0)
             res = ac.send_action()
+            #simple_controller.tf_go()
             simple_controller.stop()
+            simple_controller.go_straight(0.1)
+            simple_controller.stop()
+            cnt = 0
+            flag = True
+            simple_conyroll_flag = False
+            # while flag:
+            #     tmp_time = rospy.Time.now()
+            #     while (rospy.Time.now().secs - tmp_time.secs) < 5.0:
+            #         try:
+            #             t = tfBuffer.lookup_transform('map','base_footprint',rospy.Time())
+            #             if t.transform.translation.x > 1.5 :
+            #                 if cnt <= 3:
+            #                     print(t.transform.translation.x)
+            #                     simple_controller.go_straight(0.05,-0.2)
+            #                     rospy.sleep(0.5)
+            #                     res2 = ac.send_action()
+            #                     simple_controller.stop()
+            #                     print('res2 : ' + str(res2))
+            #                     action_client.cancel_all_goals()
+            #                 else:
+            #                     flag = False
+            #                 cnt += 1
+            #             else:
+            #                 flag = False
+            #                 simple_conyroll_flag = True
+            #                 break
+            #         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+            #             print(e)
+            #             rospy.sleep(0.1)
+            #             continue
+
+            # if simple_conyroll_flag:
+            #     if left_or_right == 'left':
+            #         simple_controller.tf_spin()
+            #         simple_controller.turn_left(30)
+            #         simple_controller.tf_go()
+            #         simple_controller.stop()
+            #         simple_controller.go_straight(0.5)
+            #     else:
+            #         simple_controller.tf_spin()
+            #         simple_controller.turn_right(30)
+            #         simple_controller.tf_go()
+            #         simple_controller.stop()
+            #         simple_controller.go_straight(0.5)
+
+                    
+
+
 
 
     # print("goal(" + str(x+0.3) + "," + str(y) + ")")

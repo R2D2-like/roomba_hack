@@ -93,7 +93,7 @@ class SimpleController:
         while flag:
             try:
                 t = tfBuffer.lookup_transform('map','base_footprint',rospy.Time())
-                if abs(t.transform.rotation.w)<0.99:
+                if abs(t.transform.rotation.w)<0.97:
                     vel.linear.x = 0.0
                     vel.angular.z = -0.2
                     self.cmd_vel_pub.publish(vel)
@@ -120,7 +120,7 @@ class SimpleController:
         while flag:
             try:
                 t = tfBuffer.lookup_transform('map','base_footprint',rospy.Time())
-                if abs(t.transform.rotation.w)>0.02:
+                if abs(t.transform.rotation.w)>0.04:
                     vel.linear.x = 0.0
                     vel.angular.z = -0.2
                     self.cmd_vel_pub.publish(vel)
@@ -229,7 +229,7 @@ if __name__=='__main__':
     clear_res = clear_srv()
     print('clear')
     #add
-    add_map()
+    #add_map()
 
     ac.set_goal(1.5, 1.5, 0.0)
     #send_time = rospy.Time.now()
@@ -347,6 +347,7 @@ if __name__=='__main__':
         #rospy.sleep(3)
         simple_controller.turn_left(60)
         det_res = detection()
+        det_res = detection()
     else:
         simple_controller.tf_spin_forward()
         simple_controller.turn_left(30)
@@ -356,6 +357,7 @@ if __name__=='__main__':
         det_res = detection()
         #rospy.sleep(3)
         simple_controller.turn_right(60)
+        det_res = detection()
         det_res = detection()
 
 
@@ -367,7 +369,7 @@ if __name__=='__main__':
     clear_res = clear_srv()
     print('clear')
     #add
-    add_map()
+    #add_map()
 
     ac.set_goal(3.5, 2.2, 0.0)
     #send_time = rospy.Time.now()
